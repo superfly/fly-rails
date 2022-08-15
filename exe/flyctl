@@ -1,0 +1,44 @@
+#! /usr/bin/env ruby
+# because rubygems shims assume a gem's executables are Ruby
+
+require "fly.io-rails/platforms"
+
+supported_platforms = Fly_io::PLATFORMS.values
+platform = [:cpu, :os].map { |m| Gem::Platform.local.send(m) }.join("-")
+
+if supported_platforms.none? { |supported_platform| Gem::Platform.match(supported_platform) }
+  STDERR.puts(<<~ERRMSG)
+    ERROR: flyctl does not support the #{platform} platform
+  ERRMSG
+  exit 1
+end
+
+exe_path = Dir.glob(File.join(__dir__, "*", "flyctl*")).find do |f|
+  Gem::Platform.match(File.basename(File.dirname(f)))
+end
+if exe_path.nil?
+  STDERR.puts(<<~ERRMSG)
+    ERROR: Cannot find the flyctl executable for #{platform} in #{__dir__}
+    If you're using bundler, please make sure you're on the latest bundler version:
+
+      gem install bundler
+      bundle update --bundler
+
+    Then make sure your lock file includes this platform by running:
+
+      bundle lock --add-platform #{platform}
+      bundle install
+
+    See `bundle lock --help` output for details.
+  ERRMSG
+  exit 1
+end
+
+if Gem.win_platform?
+  # use system rather than exec as exec inexplicably fails to find the executable
+  # on Windows
+  system exe_path, *ARGV
+else
+  # use exec rather than system to avoid creating a new process
+  exec exe_path, *ARGV
+end
