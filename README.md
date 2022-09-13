@@ -2,17 +2,6 @@
 
 Add [Fly.io](https://fly.io) support to [Rails](https://rubyonrails.org/).
 
-## Quickstart/summary
-
-```sh
-rails new demo
-cd demo
-bundle add fly.io-rails
-flyctl auth login
-bin/rails fly:launch
-bin/rails deploy
-```
-
 ## Status
 
 <u>pre-alpha</u>.
@@ -26,6 +15,17 @@ It currently is possible to build the gem files, install the prerequisite
 You can also add the gem to your Gemfile using the `path:` argument to the
 `gem` statement/method call.  Of course, all of this will be taken care of
 for you once this gem has been published.
+
+## Quickstart/summary
+
+```sh
+rails new demo
+cd demo
+bundle add fly.io-rails
+flyctl auth login
+bin/rails fly:launch
+bin/rails deploy
+```
 
 ## Build instructions
 
