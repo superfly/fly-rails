@@ -1,5 +1,6 @@
 require 'rails'
 require 'fly.io-rails/generators'
+require 'fly.io-rails/utils'
 
 class FlyIoRailtie < Rails::Railtie
   rake_tasks do

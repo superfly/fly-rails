@@ -1,0 +1,42 @@
+terraform {
+  required_providers {
+    fly = {
+      source = "fly-apps/fly"
+      version = "0.0.10"
+    }
+  }
+}
+
+resource "fly_ip" "<%= @appName %>Ipv4" {
+  app        = <%= @app.inspect %>
+  type       = "v4"
+}
+
+resource "fly_ip" "<%= @appName %>Ipv6" {
+  app        = <%= @app.inspect %>
+  type       = "v6"
+}
+
+resource "fly_machine" "<%= @appName %>Machine" {
+  for_each = toset(<%= @regions.inspect %>)
+  app    = <%= @app.inspect %>
+  region = each.value
+  name   = "<%= @app %>-${each.value}"
+  image  = "quay.io/evl.ms/fullstaq-ruby:<%= @ruby_version %>-jemalloc-slim"
+  services = [
+    {
+      ports = [
+        {
+          port     = 443
+          handlers = ["tls", "http"]
+        },
+        {
+          port     = 80
+          handlers = ["http"]
+        }
+      ]
+      "protocol" : "tcp",
+      "internal_port" : 8080
+    },
+  ]
+}
