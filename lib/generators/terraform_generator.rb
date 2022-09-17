@@ -14,7 +14,7 @@ class TerraformGenerator < Rails::Generators::Base
       "flyctl apps create --generate-name --org #{options[:org].inspect}"
     end
 
-    output, error = tee cmd
+    output = tee cmd
     exit 1 unless output =~ /^New app created: /
 
     @app = output.split.last

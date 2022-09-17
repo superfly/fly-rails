@@ -1,4 +1,4 @@
-require 'open3'
+require 'pty'
 
 module FlyIoRails
   module Utils
@@ -9,27 +9,23 @@ module FlyIoRails
     end
     
     def self.tee cmd
-      data = {:out => [], :err => []}
+      data = []
 
-      Open3.popen3(cmd) do |stdin, stdout, stderr, thread|
-	{ out: stdout, err: stderr }.each do |key, stream|
-	  Thread.new do
-	    until (raw_line = stream.gets).nil? do
-	      data[key].push raw_line
-	      
-	      if key == :out
-		STDOUT.print raw_line
-	      else
-		STDERR.print raw_line
-	      end
-	    end
+      begin
+	PTY.spawn( cmd ) do |stdin, stdout, pid|
+	  begin
+	    # Do stuff with the output here. Just printing to show it works
+	    stdin.each do |line| 
+              print line
+              data << line
+            end
+	  rescue Errno::EIO
 	  end
 	end
-
-	thread.join
+      rescue PTY::ChildExited
       end
 
-      [data[:out].join, data[:err].join]
+      data.join
     end
 
   end
