@@ -9,8 +9,8 @@ namespace :fly do
       tf[/^\s*image\s*=\s*"(.*?)"/, 1] = image.strip
       IO.write 'main.tf', tf
 
-      ENV['FLY_API_TOKEN'] = `flyctl auth token`
-      FlyIoRails::Utils.tee 'terraform apply -auto-approve'
+      ENV['FLY_API_TOKEN'] = `flyctl auth token`.chomp
+      system 'terraform apply -auto-approve'
     end
   end
 end

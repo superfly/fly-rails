@@ -7,22 +7,44 @@ terraform {
   }
 }
 
+# Allocate an IPv4 address
 resource "fly_ip" "<%= @appName %>Ipv4" {
   app        = <%= @app.inspect %>
   type       = "v4"
 }
 
+# Allocate an IPv6 address
 resource "fly_ip" "<%= @appName %>Ipv6" {
   app        = <%= @app.inspect %>
   type       = "v6"
 }
 
+/* Uncomment this if you want a volume
+resource "fly_volume" "<%= @appName %>Volume" {
+  for_each = toset(<%= @regions.inspect %>)
+  region = each.value
+
+  name       = "<%= @appName %>Volume"
+  app        = <%= @app.inspect %>
+  size       = 3
+}
+*/
+
+# Start a fly machine
 resource "fly_machine" "<%= @appName %>Machine" {
   for_each = toset(<%= @regions.inspect %>)
-  app    = <%= @app.inspect %>
   region = each.value
+
+  app    = <%= @app.inspect %>
   name   = "<%= @app %>-${each.value}"
   image  = "quay.io/evl.ms/fullstaq-ruby:<%= @ruby_version %>-jemalloc-slim"
+
+  # Scale application resources
+  cpus     = 1
+  cputype  = "shared"
+  memorymb = 256
+
+  # map http[s] external ports 443 and 80 to internal port 8080
   services = [
     {
       ports = [
@@ -35,8 +57,24 @@ resource "fly_machine" "<%= @appName %>Machine" {
           handlers = ["http"]
         }
       ]
-      "protocol" : "tcp",
-      "internal_port" : 8080
-    },
+
+      protocol = "tcp"
+      internal_port = 8080
+    }
   ]
+
+  /* Uncomment this if you want sqlite3 on a volume
+  env = {
+    DATABASE_URL = "sqlite3:///mnt/db/production.sqlite3"
+  }
+
+  mounts = [
+    {
+      volume  = "<%= @appName %>Volume"
+      path    = "/mnt/db"
+    }
+  ]
+
+  depends_on = [fly_volume.<%= @appName %>Volume]
+  */
 }

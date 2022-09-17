@@ -156,3 +156,8 @@ task package: :download
 
 CLOBBER.add(exepaths.map { |path| File.dirname(path) })
 
+namespace :gem do
+  task :push do
+    sh 'for i in pkg/*.gem; do gem push $i; done'
+  end
+end
