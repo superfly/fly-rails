@@ -6,7 +6,7 @@ namespace :fly do
 
     if image
       tf = IO.read('main.tf')
-      tf[/^\s*image\s*=\s*"(.*?)"/, 1] = image
+      tf[/^\s*image\s*=\s*"(.*?)"/, 1] = image.strip
       IO.write 'main.tf', tf
 
       ENV['FLY_API_TOKEN'] = `flyctl auth token`
