@@ -41,6 +41,19 @@ class TerraformGenerator < Rails::Generators::Base
     template 'main.tf.erb', 'main.tf'
     template 'fly.rake.erb', 'lib/tasks/fly.rake'
 
+    credentials = nil
+    if File.exist? 'config/credentials/production.key'
+      credentials = 'config/credentials/production.key'
+    elsif File.exist? 'config/master.key'
+      credentials = 'config/master.key'
+    end
+
+    if credentials
+      say_status :run, "flyctl secrets set RAILS_MASTER_KEY from #{credentials}"
+      system "flyctl secrets set RAILS_MASTER_KEY=#{IO.read(credentials).chomp}"
+      puts
+    end
+
     ENV['FLY_API_TOKEN'] = `flyctl auth token`
     tee 'terraform init'
   end
