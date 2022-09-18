@@ -16,7 +16,7 @@ namespace :fly do
     IO.write 'main.tf', tf
 
     # find first machine in terraform config file
-    machines = Fly::HCL.parse IO.read('main.tf').find {|block|
+    machines = Fly::HCL.parse(IO.read('main.tf')).find {|block|
       block.keys.first == :resource and
       block.values.first.keys.first == 'fly_machine'}
 
@@ -43,9 +43,11 @@ namespace :fly do
     config.delete :mounts
 
     # override start command
+    config[:env] ||= {}
     config[:env]['SERVER_COMMAND'] = 'bin/rails fly:release'
 
     # start release machine
+    STDERR.puts "--> #{config[:env]['SERVER_COMMAND']}"
     start = Fly::Machines.create_start_machine(app, config: config)
     machine = start[:id]
 

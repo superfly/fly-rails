@@ -31,7 +31,11 @@ class TerraformGenerator < Rails::Generators::Base
 
     @ruby_version = RUBY_VERSION
     @bundler_version = Bundler::VERSION
+    @node = File.exist? 'node_modules'
+    @yarn = File.exist? 'yarn.lock'
+    @node_version = @node ? `node --version`.chomp.sub(/^v/, '') : '16.17.0'
     @appName = @app.gsub('-', '_').camelcase(:lower)
+
     template 'Dockerfile.erb', 'Dockerfile'
     template 'dockerignore.erb', '.dockerignore'
     template 'main.tf.erb', 'main.tf'
