@@ -8,6 +8,8 @@ class TerraformGenerator < Rails::Generators::Base
   class_option :region, type: :array, repeatable: true, default: []
 
   def terraform
+    source_paths.push File.expand_path('./templates', __dir__)
+
     cmd = if options[:name]
       "flyctl apps create #{options[:name].inspect} --org #{options[:org].inspect}"
     else
@@ -18,7 +20,7 @@ class TerraformGenerator < Rails::Generators::Base
     exit 1 unless output =~ /^New app created: /
 
     @app = output.split.last
-    create_file 'fly.toml', "app = #{@app.inspect}\n"
+    template 'fly.toml.erb', 'fly.toml'
 
     if options[:region].empty?
       @regions = JSON.parse(`flyctl regions list --json`)['Regions'].
@@ -26,8 +28,6 @@ class TerraformGenerator < Rails::Generators::Base
     else
       @regions = options[:regions].flatten
     end
-
-    source_paths.push File.expand_path('./templates', __dir__)
 
     @ruby_version = RUBY_VERSION
     @bundler_version = Bundler::VERSION
