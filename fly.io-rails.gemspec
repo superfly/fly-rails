@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
     "Sam Ruby",
   ]
   spec.email       = "rubys@intertwingly.net"
-  spec.homepage    = "https://github.com/rubys/fly-io.rails"
+  spec.homepage    = "https://github.com/rubys/fly.io-rails"
   spec.summary     = "Rails support for Fly-io"
   spec.license     = "Apache-2.0"
 
