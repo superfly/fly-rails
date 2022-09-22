@@ -2,10 +2,18 @@ terraform {
   required_providers {
     fly = {
       source = "fly-apps/fly"
-      version = "0.0.10"
+      version = "0.0.18"
     }
   }
 }
+
+/* uncomment if you want an internal tunnel
+provider "fly" {
+  useinternaltunnel    = true
+  internaltunnelorg    = <%= (@org || "personal").inspect %>
+  internaltunnelregion = <%= (@regions.first || 'iad').inspect %>
+}
+*/
 
 # Allocate an IPv4 address
 resource "fly_ip" "<%= @appName %>Ipv4" {

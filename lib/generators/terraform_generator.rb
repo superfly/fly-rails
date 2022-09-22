@@ -1,4 +1,5 @@
 require 'open3'
+require 'fly.io-rails/machines'
 
 class TerraformGenerator < Rails::Generators::Base
   include FlyIoRails::Utils
@@ -35,6 +36,7 @@ class TerraformGenerator < Rails::Generators::Base
     @yarn = File.exist? 'yarn.lock'
     @node_version = @node ? `node --version`.chomp.sub(/^v/, '') : '16.17.0'
     @appName = @app.gsub('-', '_').camelcase(:lower)
+    @org = Fly::Machines.org
 
     template 'Dockerfile.erb', 'Dockerfile'
     template 'dockerignore.erb', '.dockerignore'

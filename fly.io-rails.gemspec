@@ -20,4 +20,5 @@ Gem::Specification.new do |spec|
   spec.executables << "flyctl"
 
   spec.add_dependency "fly-ruby"
+  spec.add_dependency "toml"
 end

@@ -28,11 +28,8 @@ module Fly
       end
     end
 
-    # determine fly api hostname.  Starts proxy if necessary
-    def self.fly_api_hostname!
-      hostname = fly_api_hostname
-      return hostname if hostname
-
+    # determine application's organization
+    def self.org
       org = 'personal'
 
       if File.exist? 'fly.toml'
@@ -45,6 +42,14 @@ module Fly
 	  org = info['Organization'] if info['ID'] == app
 	end
       end
+
+      org
+    end
+
+    # determine fly api hostname.  Starts proxy if necessary
+    def self.fly_api_hostname!
+      hostname = fly_api_hostname
+      return hostname if hostname
 
       pid = fork { exec "flyctl machines api-proxy --org #{org}" }
       at_exit { Process.kill "INT", pid }
@@ -62,7 +67,7 @@ module Fly
         end
       end
 
-      @@fy_api_hostname
+      @@fly_api_hostname
     end
 
     # create_fly_application app_name: 'user-functions', org_slug: 'personal'

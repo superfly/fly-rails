@@ -46,6 +46,9 @@ namespace :fly do
     config[:env] ||= {}
     config[:env]['SERVER_COMMAND'] = 'bin/rails fly:release'
 
+    # start proxy, if necessary
+    endpoint = Fly::Machines::fly_api_hostname!
+
     # start release machine
     STDERR.puts "--> #{config[:env]['SERVER_COMMAND']}"
     start = Fly::Machines.create_start_machine(app, config: config)
@@ -75,6 +78,7 @@ namespace :fly do
 
       # use terraform apply to deploy
       ENV['FLY_API_TOKEN'] = `flyctl auth token`.chomp
+      ENV['FLY_HTTP_ENDPOINT'] = endpoint if endpoint
       system 'terraform apply -auto-approve'
     else
       STDERR.puts 'Error performing release'
