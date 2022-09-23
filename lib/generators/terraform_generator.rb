@@ -1,7 +1,7 @@
 require 'open3'
 require 'fly.io-rails/actions'
 
-class TerraformGenerator < Rails::Generators::Base
+class Fly::Generators::TerraformGenerator < Rails::Generators::Base
   include FlyIoRails::Utils
 
   class_option :name, type: :string, required: false

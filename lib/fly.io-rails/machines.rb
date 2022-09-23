@@ -98,9 +98,9 @@ module Fly
       post "/v1/apps/#{app}/machines", options
     end
 
-    # wait_for_machine_to_start 'user-functions', '73d8d46dbee589'
-    def self.wait_for_machine_to_start app, machine, timeout=60
-      get "/v1/apps/#{app}/machines/#{machine}/wait?timeout=#{timeout}"
+    # wait_for_machine 'user-functions', '73d8d46dbee589'
+    def self.wait_for_machine app, machine, options = {timeout:60, status: 'started'}
+      get "/v1/apps/#{app}/machines/#{machine}/wait?#{options.to_query}"
     end
 
     # get_a_machine machine 'user-functions', '73d8d46dbee589'
