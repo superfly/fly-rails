@@ -1,5 +1,5 @@
 require 'open3'
-require 'fly.io-rails/machines'
+require 'fly.io-rails/actions'
 
 class TerraformGenerator < Rails::Generators::Base
   include FlyIoRails::Utils
@@ -30,18 +30,8 @@ class TerraformGenerator < Rails::Generators::Base
       @regions = options[:regions].flatten
     end
 
-    @ruby_version = RUBY_VERSION
-    @bundler_version = Bundler::VERSION
-    @node = File.exist? 'node_modules'
-    @yarn = File.exist? 'yarn.lock'
-    @node_version = @node ? `node --version`.chomp.sub(/^v/, '') : '16.17.0'
-    @appName = @app.gsub('-', '_').camelcase(:lower)
-    @org = Fly::Machines.org
-
-    template 'Dockerfile.erb', 'Dockerfile'
-    template 'dockerignore.erb', '.dockerignore'
-    template 'main.tf.erb', 'main.tf'
-    template 'fly.rake.erb', 'lib/tasks/fly.rake'
+    action = Fly::Actions.new(@app)
+    action.generate_all
 
     credentials = nil
     if File.exist? 'config/credentials/production.key'
@@ -60,4 +50,3 @@ class TerraformGenerator < Rails::Generators::Base
     tee 'terraform init'
   end
 end
-
