@@ -85,7 +85,7 @@ module Fly
     def create_volume(app, region, size)
       volume = "#{app.gsub('-', '_')}_volume"
       volumes = JSON.parse(`flyctl volumes list --json`).
-        map {|volume| volume[' Name']}
+        map {|volume| volume['Name']}
 
       unless volumes.include? volume
         cmd = "flyctl volumes create #{volume} --app #{app} --region #{region} --size #{size}"
@@ -97,14 +97,31 @@ module Fly
     end
 
     def create_postgres(app, org, region, vm_size, volume_size, cluster_size)
-      cmd = "fly postgres create --name #{app}-db --org #{org} --region #{region} --vm-size #{vm_size} --volume-size #{volume_size} --initial-cluster-size #{cluster_size}"
+      cmd = "flyctl postgres create --name #{app}-db --org #{org} --region #{region} --vm-size #{vm_size} --volume-size #{volume_size} --initial-cluster-size #{cluster_size}"
       say_status :run, cmd
       output = FlyIoRails::Utils.tee(cmd)
       output[%r{postgres://\S+}]
    end
 
+    def create_redis(app, org, region, eviction)
+      # see if redis is already defined
+      name = `flyctl redis list`.lines[1..-2].map(&:split).
+        find {|tokens| tokens[1] == org}&.first
+
+      if name
+        secret = `flyctl redis status #{name}`[%r{redis://\S+}]
+        return secret if secret
+      end
+
+      # create a new redis
+      cmd = "flyctl redis create --org #{org} --name #{app}-redis --region #{region} --no-replicas #{eviction} --plan Free"
+      say_status :run, cmd
+      output = FlyIoRails::Utils.tee(cmd)
+      output[%r{redis://\S+}]
+    end
+
     def release(app, config)
-      start = Fly::Machines.create_start_machine(app, config: config)
+      start = Fly::Machines.create_and_start_machine(app, config: config)
       machine = start[:id]
 
       if !machine
@@ -113,15 +130,27 @@ module Fly
 	exit 1
       end
 
+      status = Fly::Machines.wait_for_machine app, machine,
+        timeout: 60, state: 'started'
+
       # wait for release to copmlete
       status = nil
       5.times do
-	status = Fly::Machines.wait_for_machine app, machine,
-          timeout: 60, status: 'stopped'
-	return machine if status[:ok]
+        status = Fly::Machines.wait_for_machine app, machine,
+          timeout: 60, state: 'stopped'
+        return machine if status[:ok]
       end
 
-      STDERR.puts status.to_json
+      # wait for release to copmlete
+      event = nil
+      90.times do
+	sleep 1
+	status = Fly::Machines.get_a_machine app, machine
+	event = status[:events]&.first
+	return machine if event && event[:type] == 'exit'
+      end
+
+      STDERR.puts event.to_json
       exit 1
     end
 
@@ -130,7 +159,7 @@ module Fly
         map {|region| region['Code']} rescue []
       region = regions.first || 'iad'
 
-      secrets = JSON.parse(`fly secrets list --json`).
+      secrets = JSON.parse(`flyctl secrets list --json`).
         map {|secret| secret["Name"]}
 
       config = {
@@ -173,9 +202,33 @@ module Fly
       elsif database == 'postgresql' and not secrets.include? 'DATABASE_URL'
         secret = create_postgres(app, @org, region, 'shared-cpu-1x', 1, 1)
 
-        cmd = "fly secrets set DATABASE_URL=#{secret}"
-        say_status :run, cmd
-        system cmd
+        if secret
+          cmd = "flyctl secrets set --stage DATABASE_URL=#{secret}"
+          say_status :run, cmd
+          system cmd
+        end
+      end
+
+      # Enable redis if mentioned as a cache provider or a cable provider.
+      # Set eviction policy to true if a cache provider, else false.
+      eviction = nil
+
+      if (YAML.load_file('config/cable.yml').dig('production', 'adapter') rescue false)
+        eviction = '--disable-eviction'
+      end
+
+      if (IO.read('config/environments/production.rb') =~ /redis/i rescue false)
+        eviction = '--enable-eviction'
+      end
+
+      if eviction and not secrets.include? 'REDIS_URL'
+        secret = create_redis(app, @org, region, eviction)
+
+        if secret
+          cmd = "flyctl secrets set --stage REDIS_URL=#{secret}"
+          say_status :run, cmd
+          system cmd
+        end
       end
 
       # build config for release machine, overriding server command
@@ -192,9 +245,15 @@ module Fly
       # start proxy, if necessary
       endpoint = Fly::Machines::fly_api_hostname!
 
+      # stop previous instances
+      JSON.parse(`fly machines list --json`).each do |list|
+        next if list['id'] == machine
+        system "fly machines remove --force #{list['id']}"
+      end
+
       # start app
       say_status :fly, "start #{app}"
-      start = Fly::Machines.create_start_machine(app, config: config)
+      start = Fly::Machines.create_and_start_machine(app, config: config)
       machine = start[:id]
 
       if !machine
@@ -251,7 +310,7 @@ module Fly
 
       # start release machine
       STDERR.puts "--> #{config[:env]['SERVER_COMMAND']}"
-      start = Fly::Machines.create_start_machine(app, config: config)
+      start = Fly::Machines.create_and_start_machine(app, config: config)
       machine = start[:id]
 
       if !machine

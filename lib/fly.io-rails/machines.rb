@@ -80,7 +80,7 @@ module Fly
       get "/v1/apps/#{app}"
     end
 
-    # create_start_machine 'user-functions', name: 'quirky_machine', config: {
+    # create_and_start_machine 'user-functions', name: 'quirky_machine', config: {
     #   image: 'flyio/fastify-functions',
     #   env: {'APP_ENV' => 'production'},
     #   services: [
@@ -94,7 +94,7 @@ module Fly
     #     }
     #   ]
     # }
-    def self.create_start_machine app, options
+    def self.create_and_start_machine app, options
       post "/v1/apps/#{app}/machines", options
     end
 
