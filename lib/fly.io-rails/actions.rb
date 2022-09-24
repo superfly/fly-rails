@@ -69,11 +69,21 @@ module Fly
       template 'fly.rake.erb', 'lib/tasks/fly.rake'
     end
 
-    def generate_all
-      generate_dockerfile
-      generate_dockerignore
-      generate_terraform
-      generate_raketask
+    def generate_key
+      credentials = nil
+      if File.exist? 'config/credentials/production.key'
+        credentials = 'config/credentials/production.key'
+      elsif File.exist? 'config/master.key'
+        credentials = 'config/master.key'
+      end
+  
+      if credentials
+        say_status :run, "flyctl secrets set RAILS_MASTER_KEY from #{credentials}"
+        system "flyctl secrets set RAILS_MASTER_KEY=#{IO.read(credentials).chomp}"
+        puts
+      end
+  
+      ENV['FLY_API_TOKEN'] = `flyctl auth token`
     end
 
     def generate_ipv4
@@ -131,9 +141,9 @@ module Fly
       machine = start[:id]
 
       if !machine
-	STDERR.puts 'Error starting release machine'
-	PP.pp start, STDERR
-	exit 1
+        STDERR.puts 'Error starting release machine'
+        PP.pp start, STDERR
+        exit 1
       end
 
       status = Fly::Machines.wait_for_machine app, machine,
@@ -150,10 +160,10 @@ module Fly
       # wait for release to copmlete
       event = nil
       90.times do
-	sleep 1
-	status = Fly::Machines.get_a_machine app, machine
-	event = status[:events]&.first
-	return machine if event && event[:type] == 'exit'
+        sleep 1
+        status = Fly::Machines.get_a_machine app, machine
+        event = status[:events]&.first
+        return machine if event && event[:type] == 'exit'
       end
 
       STDERR.puts event.to_json
@@ -179,14 +189,14 @@ module Fly
           memory_mb: @config.machine.memory_mb
         },
         services: [
-	  {
-	    ports: [
-	      {port: 443, handlers: ["tls", "http"]},
-	      {port: 80, handlers: ["http"]}
-	    ],
-	    protocol: "tcp",
-	    internal_port: 8080
-	  } 
+          {
+            ports: [
+              {port: 443, handlers: ["tls", "http"]},
+              {port: 80, handlers: ["http"]}
+            ],
+            protocol: "tcp",
+            internal_port: 8080
+          } 
         ]
       }
 
@@ -194,6 +204,10 @@ module Fly
         dig('production', 'adapter') rescue nil
       cable = YAML.load_file('config/cable.yml').
         dig('production', 'adapter') rescue nil
+
+      unless secrets.include? 'RAILS_MASTER_KEY'
+        generate_key
+      end
 
       if database == 'sqlite3'
         volume = create_volume(app, region, @config.sqlite3.size) 
@@ -266,15 +280,15 @@ module Fly
       machine = start[:id]
 
       if !machine
-	STDERR.puts 'Error starting application'
-	PP.pp start, STDERR
-	exit 1
+        STDERR.puts 'Error starting application'
+        PP.pp start, STDERR
+        exit 1
       end
 
       5.times do
-	status = Fly::Machines.wait_for_machine app, machine,
+        status = Fly::Machines.wait_for_machine app, machine,
           timeout: 60, status: 'started'
-	return if status[:ok]
+        return if status[:ok]
       end
 
       STDERR.puts 'Timeout waiting for application to start'
@@ -288,22 +302,22 @@ module Fly
 
       # find first machine in terraform config file
       machines = Fly::HCL.parse(IO.read('main.tf')).find {|block|
-	block.keys.first == :resource and
-	block.values.first.keys.first == 'fly_machine'}
+        block.keys.first == :resource and
+        block.values.first.keys.first == 'fly_machine'}
 
       # extract HCL configuration for the machine
       config = machines.values.first.values.first.values.first
 
       # delete HCL specific configuration items
       %i(services for_each region app name depends_on).each do |key|
-	 config.delete key
+         config.delete key
       end
 
       # move machine configuration into guest object
       config[:guest] = {
-	cpus: config.delete(:cpus),
-	memory_mb: config.delete(:memorymb),
-	cpu_kind: config.delete(:cputype)
+        cpus: config.delete(:cpus),
+        memory_mb: config.delete(:memorymb),
+        cpu_kind: config.delete(:cputype)
       }
 
       # release machines should have no services or mounts
@@ -323,36 +337,36 @@ module Fly
       machine = start[:id]
 
       if !machine
-	STDERR.puts 'Error starting release machine'
-	PP.pp start, STDERR
-	exit 1
+        STDERR.puts 'Error starting release machine'
+        PP.pp start, STDERR
+        exit 1
       end
 
       # wait for release to copmlete
       event = nil
       90.times do
-	sleep 1
-	status = Fly::Machines.get_a_machine app, machine
-	event = status[:events]&.first
-	break if event && event[:type] == 'exit'
+        sleep 1
+        status = Fly::Machines.get_a_machine app, machine
+        event = status[:events]&.first
+        break if event && event[:type] == 'exit'
       end
 
       # extract exit code
       exit_code = event.dig(:request, :exit_event, :exit_code)
-	       
+               
       if exit_code == 0
-	# delete release machine
-	Fly::Machines.delete_machine app, machine
+        # delete release machine
+        Fly::Machines.delete_machine app, machine
 
-	# use terraform apply to deploy
-	ENV['FLY_API_TOKEN'] = `flyctl auth token`.chomp
-	ENV['FLY_HTTP_ENDPOINT'] = endpoint if endpoint
-	system 'terraform apply -auto-approve'
+        # use terraform apply to deploy
+        ENV['FLY_API_TOKEN'] = `flyctl auth token`.chomp
+        ENV['FLY_HTTP_ENDPOINT'] = endpoint if endpoint
+        system 'terraform apply -auto-approve'
       else
-	STDERR.puts 'Error performing release'
-	STDERR.puts (exit_code ? {exit_code: exit_code} : event).inspect
-	STDERR.puts "run 'flyctl logs --instance #{machine}' for more information"
-	exit 1
+        STDERR.puts 'Error performing release'
+        STDERR.puts (exit_code ? {exit_code: exit_code} : event).inspect
+        STDERR.puts "run 'flyctl logs --instance #{machine}' for more information"
+        exit 1
       end
     end
   end

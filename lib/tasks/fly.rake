@@ -30,7 +30,7 @@ namespace :fly do
 
     # build and push an image
     out = FlyIoRails::Utils.tee 'fly deploy --build-only --push'
-    image = out[/image:\s+(.*)/, 1].strip
+    image = out[/image:\s+(.*)/, 1]&.strip
 
     exit 1 unless image
 
