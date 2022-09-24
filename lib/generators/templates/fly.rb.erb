@@ -1,0 +1,19 @@
+machine do
+  cpus 1
+  cpu_kind 'shared'
+  memory_mb 256
+end
+
+postgres do
+  vm_size 'shared-cpu-1x'
+  volume_size 1
+  initial_cluster_size 1
+end
+
+redis do
+  plan "Free"
+end
+
+sqlite3 do
+  size 3
+end

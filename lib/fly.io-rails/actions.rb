@@ -3,6 +3,7 @@ require 'active_support'
 require 'active_support/core_ext/string/inflections'
 require 'fly.io-rails/machines'
 require 'fly.io-rails/utils'
+require 'fly.io-rails/dsl'
 
 module Fly
   class Actions < Thor::Group
@@ -24,6 +25,11 @@ module Fly
 
       @options = {}
       @destination_stack = [Dir.pwd]
+
+      @config = Fly::DSL::Config.new
+      if File.exist? 'config/fly.rb'
+        @config.instance_eval IO.read('config/fly.rb')
+      end
     end
 
     def app
@@ -114,7 +120,7 @@ module Fly
       end
 
       # create a new redis
-      cmd = "flyctl redis create --org #{org} --name #{app}-redis --region #{region} --no-replicas #{eviction} --plan Free"
+      cmd = "flyctl redis create --org #{org} --name #{app}-redis --region #{region} --no-replicas #{eviction} --plan #{@config.redis.plan}"
       say_status :run, cmd
       output = FlyIoRails::Utils.tee(cmd)
       output[%r{redis://\S+}]
@@ -168,9 +174,9 @@ module Fly
         name: "#{app}-machine",
         image: image,
         guest: {
-          cpus: 1,
-          cpu_kind: "shared",
-          memory_mb: 256,
+          cpus: @config.machine.cpus,
+          cpu_kind: @config.machine.cpu_kind,
+          memory_mb: @config.machine.memory_mb
         },
         services: [
 	  {
@@ -190,7 +196,7 @@ module Fly
         dig('production', 'adapter') rescue nil
 
       if database == 'sqlite3'
-        volume = create_volume(app, region, 3) 
+        volume = create_volume(app, region, @config.sqlite3.size) 
 
         config[:mounts] = [
           { volume: volume, path: '/mnt/volume' }
@@ -200,7 +206,10 @@ module Fly
           "DATABASE_URL" => "sqlite3:///mnt/volume/production.sqlite3"
         }
       elsif database == 'postgresql' and not secrets.include? 'DATABASE_URL'
-        secret = create_postgres(app, @org, region, 'shared-cpu-1x', 1, 1)
+        secret = create_postgres(app, @org, region,
+          @config.postgres.vm_size,
+          @config.postgres.volume_size,
+          @config.postgres.initial_cluster_size)
 
         if secret
           cmd = "flyctl secrets set --stage DATABASE_URL=#{secret}"
