@@ -4,7 +4,7 @@ module FlyIoRails
   module Utils
 
     def tee cmd
-      say_status :run, cmd
+      say_status :run, cmd if defined? say_status
       FlyIoRails::Utils.tee cmd
     end
     
@@ -30,25 +30,27 @@ module FlyIoRails
 
     def create_app(name=nil, org='personal', regions=[])
       cmd = if name
-        "flyctl apps create #{name.inspect} --org #{org.inspect}"
+        "flyctl apps create #{name.inspect} --org #{org.inspect} --machines"
       else
-        "flyctl apps create --generate-name --org #{org.inspect}"
+        "flyctl apps create --generate-name --org #{org.inspect} --machines"
       end
   
       output = tee cmd
       exit 1 unless output =~ /^New app created: /
   
       @app = output.split.last
-      template 'fly.toml.erb', 'fly.toml'
+      template 'fly.toml.erb', 'fly.toml' if defined? template # rake tasks are on their own
   
       if regions.empty?
-        @regions = JSON.parse(`flyctl regions list --json`)['Regions'].
+        @regions = JSON.parse(`flyctl regions list --json --app #{@app}`)['Regions'].
           map {|region| region['Code']}
       else
         @regions = regions.flatten
       end
 
       @region = @regions.first || 'iad'
+
+      @app
     end
   end
 end

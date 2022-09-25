@@ -3,17 +3,23 @@ machine do
   cpu_kind 'shared'
   memory_mb 256
 end
+<% if @sqlite3 -%>
+
+sqlite3 do
+  size 3
+end
+<% end -%>
+<% if @postgresql -%>
 
 postgres do
   vm_size 'shared-cpu-1x'
   volume_size 1
   initial_cluster_size 1
 end
+<% end -%>
+<% if @redis -%>
 
 redis do
   plan "Free"
 end
-
-sqlite3 do
-  size 3
-end
+<% end -%>

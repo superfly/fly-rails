@@ -10,14 +10,22 @@ namespace :fly do
   #  - changes to the filesystem made here are DISCARDED
   #  - full access to secrets, databases
   #  - failures here prevent deployment
+  <%- if @sqlite3 -%>
+  task :release
+  <%- else -%>
   task :release => 'db:migrate'
+  <%- end -%>
 
   # SERVER step:
   #  - changes to the filesystem made here are deployed
   #  - full access to secrets, databases
   #  - failures here result in VM being stated, shutdown, and rolled back
   #    to last successful deploy (if any).
+  <%- if @sqlite3 -%>
+  task :server => [:swapfile, 'db:migrate'] do
+  <%- else -%>
   task :server => :swapfile do
+  <%- end -%>
     sh 'bin/rails server'
   end
 
@@ -26,7 +34,11 @@ namespace :fly do
   #  - performance critical applications should scale memory to the
   #    point where swap is rarely used.  'fly scale help' for details.
   #  - disable by removing dependency on the :server task, thus:
+  <%- if @sqlite3 -%>
+  #        task :server => 'db:migrate' do
+  <%- else -%>
   #        task :server do
+  <%- end -%>
   task :swapfile do
     sh 'fallocate -l 512M /swapfile'
     sh 'chmod 0600 /swapfile'

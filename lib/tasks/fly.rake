@@ -12,18 +12,13 @@ namespace :fly do
     if File.exist? 'fly.toml'
       app = TOML.load_file('fly.toml')['app']
     else
-      output = FlyIoRails::Utils.tee(
-        "flyctl apps create --generate-name --org personal --machines"
-      )
-
-      exit 1 unless output =~ /^New app created: /
-
-      @app = app = output.split.last
+      app = create_app
     end
 
     # ensure fly.toml and Dockerfile are present
     action = Fly::Actions.new(app)
     action.generate_toml if @app
+    action.generate_fly_config unless File.exist? 'config/fly.rb'
     action.generate_dockerfile unless File.exist? 'Dockerfile'
     action.generate_dockerignore unless File.exist? '.dockerignore'
     action.generate_raketask unless File.exist? 'lib/tasks/fly.rake'

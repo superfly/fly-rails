@@ -11,7 +11,7 @@ class AppGenerator < Rails::Generators::Base
   def generate_app
     source_paths.push File.expand_path('../templates', __dir__)
 
-    create_app(options)
+    create_app(options[:name], options[:org], options)
 
     action = Fly::Actions.new(@app)
 

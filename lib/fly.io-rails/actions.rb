@@ -1,15 +1,18 @@
+require 'open3'
 require 'thor'
 require 'active_support'
 require 'active_support/core_ext/string/inflections'
 require 'fly.io-rails/machines'
 require 'fly.io-rails/utils'
 require 'fly.io-rails/dsl'
+require 'fly.io-rails/scanner'
 
 module Fly
   class Actions < Thor::Group
     include Thor::Actions
     include Thor::Base
     include Thor::Shell
+    include Fly::Scanner
     attr_accessor :options
 
     def initialize(app = nil)
@@ -30,6 +33,8 @@ module Fly
       if File.exist? 'config/fly.rb'
         @config.instance_eval IO.read('config/fly.rb')
       end
+
+      scan_rails_app
     end
 
     def app
@@ -47,6 +52,11 @@ module Fly
     def generate_toml
       app
       template 'fly.toml.erb', 'fly.toml'
+    end
+
+    def generate_fly_config
+      app
+      template 'fly.rb.erb', 'config/fly.rb'
     end
 
     def generate_dockerfile
@@ -78,8 +88,8 @@ module Fly
       end
   
       if credentials
-        say_status :run, "flyctl secrets set RAILS_MASTER_KEY from #{credentials}"
-        system "flyctl secrets set RAILS_MASTER_KEY=#{IO.read(credentials).chomp}"
+        say_status :run, "flyctl secrets set --stage RAILS_MASTER_KEY from #{credentials}"
+        system "flyctl secrets set --stage RAILS_MASTER_KEY=#{IO.read(credentials).chomp}"
         puts
       end
   
@@ -200,16 +210,11 @@ module Fly
         ]
       }
 
-      database = YAML.load_file('config/database.yml').
-        dig('production', 'adapter') rescue nil
-      cable = YAML.load_file('config/cable.yml').
-        dig('production', 'adapter') rescue nil
-
       unless secrets.include? 'RAILS_MASTER_KEY'
         generate_key
       end
 
-      if database == 'sqlite3'
+      if @sqlite3
         volume = create_volume(app, region, @config.sqlite3.size) 
 
         config[:mounts] = [
@@ -219,7 +224,7 @@ module Fly
         config[:env] = {
           "DATABASE_URL" => "sqlite3:///mnt/volume/production.sqlite3"
         }
-      elsif database == 'postgresql' and not secrets.include? 'DATABASE_URL'
+      elsif @postgresql and not secrets.include? 'DATABASE_URL'
         secret = create_postgres(app, @org, region,
           @config.postgres.vm_size,
           @config.postgres.volume_size,
@@ -232,19 +237,10 @@ module Fly
         end
       end
 
-      # Enable redis if mentioned as a cache provider or a cable provider.
-      # Set eviction policy to true if a cache provider, else false.
-      eviction = nil
+      if @redis and not secrets.include? 'REDIS_URL'
+        # Set eviction policy to true if a cache provider, else false.
+        eviction = @redis_cache ? '--enable-eviction' : '--disable-eviction'
 
-      if (YAML.load_file('config/cable.yml').dig('production', 'adapter') rescue false)
-        eviction = '--disable-eviction'
-      end
-
-      if (IO.read('config/environments/production.rb') =~ /redis/i rescue false)
-        eviction = '--enable-eviction'
-      end
-
-      if eviction and not secrets.include? 'REDIS_URL'
         secret = create_redis(app, @org, region, eviction)
 
         if secret
@@ -268,10 +264,13 @@ module Fly
       # start proxy, if necessary
       endpoint = Fly::Machines::fly_api_hostname!
 
-      # stop previous instances
-      JSON.parse(`fly machines list --json`).each do |list|
-        next if list['id'] == machine
-        system "fly machines remove --force #{list['id']}"
+      # stop previous instances - list will fail on first run
+      stdout, stderr, status = Open3.capture3('fly machines list --json')
+      unless stdout.empty?
+        JSON.parse(stdout).each do |list|
+          next if list['id'] == machine
+          system "fly machines remove --force #{list['id']}"
+        end
       end
 
       # start app
