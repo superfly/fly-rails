@@ -39,7 +39,6 @@ module FlyIoRails
       exit 1 unless output =~ /^New app created: /
   
       @app = output.split.last
-      template 'fly.toml.erb', 'fly.toml' if defined? template # rake tasks are on their own
   
       unless regions.empty?
         @regions = regions.flatten

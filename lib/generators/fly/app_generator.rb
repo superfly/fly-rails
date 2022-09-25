@@ -15,6 +15,7 @@ class AppGenerator < Rails::Generators::Base
 
     action = Fly::Actions.new(@app, options[:region])
 
+    action.generate_toml
     action.generate_fly_config unless File.exist? 'config/fly.rb'
     action.generate_dockerfile unless File.exist? 'Dockerfile'
     action.generate_dockerignore unless File.exist? '.dockerignore'
@@ -22,8 +23,8 @@ class AppGenerator < Rails::Generators::Base
     action.generate_patches
     action.generate_ipv4
     action.generate_ipv6
-    action.generate_key
-    
+
+    action.launch(@app)
   end
 end
 end

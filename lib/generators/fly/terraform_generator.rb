@@ -15,6 +15,7 @@ class TerraformGenerator < Rails::Generators::Base
 
     action = Fly::Actions.new(@app, options[:region])
     
+    action.generate_toml
     action.generate_dockerfile
     action.generate_dockerignore
     action.generate_terraform

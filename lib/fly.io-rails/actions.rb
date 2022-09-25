@@ -1,5 +1,6 @@
 require 'open3'
 require 'thor'
+require 'toml'
 require 'active_support'
 require 'active_support/core_ext/string/inflections'
 require 'fly.io-rails/machines'
@@ -15,8 +16,8 @@ module Fly
     include Fly::Scanner
     attr_accessor :options
 
-    def initialize(app = nil, regions = nil)
-      self.app = app if app
+    def initialize(app, regions = nil)
+      self.app = app
 
       @ruby_version = RUBY_VERSION
       @bundler_version = Bundler::VERSION
@@ -50,6 +51,11 @@ module Fly
       self.app = TOML.load_file('fly.toml')['app']
     end
 
+    def app_template template_file, destination
+      app
+      template template_file, destination
+    end
+
     def app=(app)
       @app = app
       @appName = @app.gsub('-', '_').camelcase(:lower)
@@ -58,33 +64,27 @@ module Fly
     source_paths.push File::expand_path('../generators/templates', __dir__)
 
     def generate_toml
-      app
-      template 'fly.toml.erb', 'fly.toml'
+      app_template 'fly.toml.erb', 'fly.toml'
     end
 
     def generate_fly_config
-      app
-      template 'fly.rb.erb', 'config/fly.rb'
+      app_template 'fly.rb.erb', 'config/fly.rb'
     end
 
     def generate_dockerfile
-      app
-      template 'Dockerfile.erb', 'Dockerfile'
+      app_template 'Dockerfile.erb', 'Dockerfile'
     end
 
     def generate_dockerignore
-      app
-      template 'dockerignore.erb', '.dockerignore'
+      app_template 'dockerignore.erb', '.dockerignore'
     end
 
     def generate_terraform
-      app
-      template 'main.tf.erb', 'main.tf'
+      app_template 'main.tf.erb', 'main.tf'
     end
 
     def generate_raketask
-      app
-      template 'fly.rake.erb', 'lib/tasks/fly.rake'
+      app_template 'fly.rake.erb', 'lib/tasks/fly.rake'
     end
 
     def generate_key
@@ -195,47 +195,16 @@ module Fly
       exit 1
     end
 
-    def deploy(app, image) 
-
+    def launch(app)
       secrets = JSON.parse(`flyctl secrets list --json`).
         map {|secret| secret["Name"]}
-
-      config = {
-        region: @region,
-        app: app,
-        name: "#{app}-machine",
-        image: image,
-        guest: {
-          cpus: @config.machine.cpus,
-          cpu_kind: @config.machine.cpu_kind,
-          memory_mb: @config.machine.memory_mb
-        },
-        services: [
-          {
-            ports: [
-              {port: 443, handlers: ["tls", "http"]},
-              {port: 80, handlers: ["http"]}
-            ],
-            protocol: "tcp",
-            internal_port: 8080
-          } 
-        ]
-      }
 
       unless secrets.include? 'RAILS_MASTER_KEY'
         generate_key
       end
 
       if @sqlite3
-        volume = create_volume(app, @region, @config.sqlite3.size) 
-
-        config[:mounts] = [
-          { volume: volume, path: '/mnt/volume' }
-        ]
-
-        config[:env] = {
-          "DATABASE_URL" => "sqlite3:///mnt/volume/production.sqlite3"
-        }
+        @volume = create_volume(app, @region, @config.sqlite3.size) 
       elsif @postgresql and not secrets.include? 'DATABASE_URL'
         secret = create_postgres(app, @org, @region,
           @config.postgres.vm_size,
@@ -261,28 +230,78 @@ module Fly
           system cmd
         end
       end
+    end
 
-      # build config for release machine, overriding server command
-      release_config = config.dup
-      release_config.delete :services
-      release_config.delete :mounts
-      release_config[:env] = { 'SERVER_COMMAND' => 'bin/rails fly:release' }
+    def deploy(app, image)
+      launch(app)
 
-      # perform release
-      say_status :fly, release_config[:env]['SERVER_COMMAND']
-      machine = release(app, release_config)
-      Fly::Machines.delete_machine app, machine if machine
+      # default config
+      config = {
+        region: @region,
+        app: app,
+        name: "#{app}-machine",
+        image: image,
+        guest: {
+          cpus: @config.machine.cpus,
+          cpu_kind: @config.machine.cpu_kind,
+          memory_mb: @config.machine.memory_mb
+        },
+        services: [
+          {
+            ports: [
+              {port: 443, handlers: ["tls", "http"]},
+              {port: 80, handlers: ["http"]}
+            ],
+            protocol: "tcp",
+            internal_port: 8080
+          } 
+        ]
+      }
 
-      # start proxy, if necessary
-      endpoint = Fly::Machines::fly_api_hostname!
+      # only run release step if there is a non-empty release task in fly.rake
+      if (IO.read('lib/tasks/fly.rake') rescue '') =~ /^\s*task[ \t]*+:?release"?[ \t]*\S/
+        # build config for release machine, overriding server command
+        release_config = config.dup
+        release_config.delete :services
+        release_config.delete :mounts
+        release_config[:env] = { 'SERVER_COMMAND' => 'bin/rails fly:release' }
 
-      # stop previous instances - list will fail on first run
-      stdout, stderr, status = Open3.capture3('fly machines list --json')
-      unless stdout.empty?
-        JSON.parse(stdout).each do |list|
-          next if list['id'] == machine
-          system "fly machines remove --force #{list['id']}"
+        # perform release
+        say_status :fly, release_config[:env]['SERVER_COMMAND']
+        machine = release(app, release_config)
+        Fly::Machines.delete_machine app, machine if machine
+
+        # start proxy, if necessary
+        endpoint = Fly::Machines::fly_api_hostname!
+
+        # stop previous instances - list will fail on first run
+        stdout, stderr, status = Open3.capture3('fly machines list --json')
+        unless stdout.empty?
+          JSON.parse(stdout).each do |list|
+            next if list['id'] == machine
+            system "fly machines remove --force #{list['id']}"
+          end
         end
+      end
+
+      # configure sqlite3 (can be overridden by fly.toml)
+      if @sqlite3
+        config[:mounts] = [
+          { volume: @volume, path: '/mnt/volume' }
+        ]
+
+        config[:env] = {
+          "DATABASE_URL" => "sqlite3:///mnt/volume/production.sqlite3"
+        }
+      end
+
+      # process toml overrides
+      toml = (TOML.load_file('fly.toml') rescue {})
+      config[:env] = toml['env'] if toml['env']
+      config[:services] = toml['services'] if toml['services']
+      if toml['mounts']
+        mounts = toml['mounts']
+        config[:mounts] = [ { volume: mounts['source'], path: mounts['destination'] } ]
       end
 
       # start app
