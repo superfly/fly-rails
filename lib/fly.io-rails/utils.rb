@@ -41,14 +41,9 @@ module FlyIoRails
       @app = output.split.last
       template 'fly.toml.erb', 'fly.toml' if defined? template # rake tasks are on their own
   
-      if regions.empty?
-        @regions = JSON.parse(`flyctl regions list --json --app #{@app}`)['Regions'].
-          map {|region| region['Code']}
-      else
+      unless regions.empty?
         @regions = regions.flatten
       end
-
-      @region = @regions.first || 'iad'
 
       @app
     end

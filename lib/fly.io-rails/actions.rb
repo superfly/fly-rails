@@ -15,7 +15,7 @@ module Fly
     include Fly::Scanner
     attr_accessor :options
 
-    def initialize(app = nil)
+    def initialize(app = nil, regions = nil)
       self.app = app if app
 
       @ruby_version = RUBY_VERSION
@@ -24,10 +24,18 @@ module Fly
       @yarn = File.exist? 'yarn.lock'
       @node_version = @node ? `node --version`.chomp.sub(/^v/, '') : '16.17.0'
       @org = Fly::Machines.org
-      @regions = []
 
       @options = {}
       @destination_stack = [Dir.pwd]
+
+      if !regions or regions.empty?
+        @regions = JSON.parse(`flyctl regions list --json --app #{app}`)['Regions'].
+          map {|region| region['Code']} rescue []
+      else
+        @regions = regions
+      end
+
+      @region = @regions.first || 'iad'
 
       @config = Fly::DSL::Config.new
       if File.exist? 'config/fly.rb'
@@ -94,6 +102,13 @@ module Fly
       end
   
       ENV['FLY_API_TOKEN'] = `flyctl auth token`
+    end
+
+    def generate_patches
+      if @redis_cable and not File.exist? 'config/initializers/action_cable.rb'
+        app
+        template 'patches/action_cable.rb', 'config/initializers/action_cable.rb'
+      end
     end
 
     def generate_ipv4
@@ -181,15 +196,12 @@ module Fly
     end
 
     def deploy(app, image) 
-      regions = JSON.parse(`flyctl regions list --json`)['Regions'].
-        map {|region| region['Code']} rescue []
-      region = regions.first || 'iad'
 
       secrets = JSON.parse(`flyctl secrets list --json`).
         map {|secret| secret["Name"]}
 
       config = {
-        region: region,
+        region: @region,
         app: app,
         name: "#{app}-machine",
         image: image,
@@ -215,7 +227,7 @@ module Fly
       end
 
       if @sqlite3
-        volume = create_volume(app, region, @config.sqlite3.size) 
+        volume = create_volume(app, @region, @config.sqlite3.size) 
 
         config[:mounts] = [
           { volume: volume, path: '/mnt/volume' }
@@ -225,7 +237,7 @@ module Fly
           "DATABASE_URL" => "sqlite3:///mnt/volume/production.sqlite3"
         }
       elsif @postgresql and not secrets.include? 'DATABASE_URL'
-        secret = create_postgres(app, @org, region,
+        secret = create_postgres(app, @org, @region,
           @config.postgres.vm_size,
           @config.postgres.volume_size,
           @config.postgres.initial_cluster_size)
@@ -241,7 +253,7 @@ module Fly
         # Set eviction policy to true if a cache provider, else false.
         eviction = @redis_cache ? '--enable-eviction' : '--disable-eviction'
 
-        secret = create_redis(app, @org, region, eviction)
+        secret = create_redis(app, @org, @region, eviction)
 
         if secret
           cmd = "flyctl secrets set --stage REDIS_URL=#{secret}"

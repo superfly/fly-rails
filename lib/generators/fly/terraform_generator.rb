@@ -13,12 +13,13 @@ class TerraformGenerator < Rails::Generators::Base
 
     create_app(options[:name], options[:org], options[:region])
 
-    action = Fly::Actions.new(@app)
+    action = Fly::Actions.new(@app, options[:region])
     
     action.generate_dockerfile
     action.generate_dockerignore
     action.generate_terraform
     action.generate_raketask
+    action.generate_patches
 
     action.generate_key
 

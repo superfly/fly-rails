@@ -27,7 +27,9 @@ resource "fly_ip" "<%= @appName %>Ipv6" {
   type       = "v6"
 }
 
+<% unless @sqlite3 -%>
 /* Uncomment this if you want a volume
+<% end -%>
 resource "fly_volume" "<%= @appName %>Volume" {
   for_each = toset(<%= @regions.inspect %>)
   region = each.value
@@ -36,7 +38,9 @@ resource "fly_volume" "<%= @appName %>Volume" {
   app        = <%= @app.inspect %>
   size       = 3
 }
+<% unless @sqlite3 -%>
 */
+<% end -%>
 
 # Start a fly machine
 resource "fly_machine" "<%= @appName %>Machine" {
@@ -71,7 +75,7 @@ resource "fly_machine" "<%= @appName %>Machine" {
     }
   ]
 
-  /* Uncomment this if you want sqlite3 on a volume
+  <%- if @sqlite3 -%>
   env = {
     DATABASE_URL = "sqlite3:///mnt/db/production.sqlite3"
   }
@@ -84,5 +88,9 @@ resource "fly_machine" "<%= @appName %>Machine" {
   ]
 
   depends_on = [fly_volume.<%= @appName %>Volume]
+  <%- else -%>
+  /* Uncomment this if you want a volume
+  depends_on = [fly_volume.<%= @appName %>Volume]
   */
+  <%- end -%>
 }
