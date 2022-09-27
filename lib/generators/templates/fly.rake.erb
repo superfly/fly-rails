@@ -6,6 +6,7 @@ namespace :fly do
   #  - Failures here prevent deployment
   task :build => 'assets:precompile'
 
+<% unless @litefs -%>
   # RELEASE step:
   #  - changes to the filesystem made here are DISCARDED
   #  - full access to secrets, databases
@@ -16,6 +17,7 @@ namespace :fly do
   task :release => 'db:migrate'
   <%- end -%>
 
+<% end -%>
   # SERVER step:
   #  - changes to the filesystem made here are deployed
   #  - full access to secrets, databases

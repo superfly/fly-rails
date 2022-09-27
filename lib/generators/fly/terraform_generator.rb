@@ -8,12 +8,14 @@ class TerraformGenerator < Rails::Generators::Base
   class_option :org, type: :string, default: 'personal'
   class_option :region, type: :array, repeatable: true, default: []
 
+  class_option :litefs, type: :boolean, default: false
+
   def terraform
     source_paths.push File.expand_path('../templates', __dir__)
 
-    create_app(options[:name], options[:org], options[:region])
+    create_app(**options.symbolize_keys)
 
-    action = Fly::Actions.new(@app, options[:region])
+    action = Fly::Actions.new(@app, options)
     
     action.generate_toml
     action.generate_dockerfile

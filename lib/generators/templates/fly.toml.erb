@@ -6,15 +6,23 @@ processes = []
 [build]
   [build.args]
     BUILD_COMMAND = "bin/rails fly:build"
+<% if @litefs -%>
+    SERVER_COMMAND = "litefs"
+<% else -%>
     SERVER_COMMAND = "bin/rails fly:server"
 
 [deploy]
   release_command = "bin/rails fly:release"
+<% end -%>
 
 [env]
   PORT = "8080"
 <% if @sqlite3 -%>
+<% if @litefs -%>
+  DATABASE_URL = "sqlite3:///data/production.sqlite3"
+<% else -%>
   DATABASE_URL = "sqlite3:///mnt/volume/production.sqlite3"
+<% end -%>
 
 [mounts]
 source = <%= "#{app.gsub('-', '_')}_volume".inspect %>
@@ -24,6 +32,9 @@ destination = "/mnt/volume"
 [experimental]
   allowed_public_ports = []
   auto_rollback = true
+<% if @litefs -%>
+  enable_consul = true
+<% end  -%>
 
 [[services]]
   http_checks = []

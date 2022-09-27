@@ -28,12 +28,14 @@ module FlyIoRails
       data.join
     end
 
-    def create_app(name=nil, org='personal', regions=[])
+    def create_app(name: nil, org: 'personal', regions: [], nomad: false, **rest)
       cmd = if name
         "flyctl apps create #{name.inspect} --org #{org.inspect} --machines"
       else
         "flyctl apps create --generate-name --org #{org.inspect} --machines"
       end
+
+      cmd.sub! ' --machines', '' if nomad
   
       output = tee cmd
       exit 1 unless output =~ /^New app created: /

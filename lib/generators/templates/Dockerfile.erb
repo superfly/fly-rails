@@ -21,6 +21,8 @@ ARG RUBY_VERSION=<%= @ruby_version %>
 ARG VARIANT=jemalloc-slim
 FROM quay.io/evl.ms/fullstaq-ruby:${RUBY_VERSION}-${VARIANT} as base
 
+LABEL fly_launch_runtime="rails"
+
 <% if @node -%>
 ARG NODE_VERSION=<%= @node_version %>
 <% end -%>
@@ -54,7 +56,12 @@ RUN volta install node@${NODE_VERSION} yarn
 
 FROM base as build_deps
 
-ARG BUILD_PACKAGES="git build-essential libpq-dev wget vim curl gzip xz-utils libsqlite3-dev"
+<% 
+  @build_packages = %w(git build-essential wget vim curl gzip xz-utils)
+  @build_packages << 'libpq-dev' if @postgresql
+  @build_packages << 'libsqlite3-dev' if @sqlite3
+-%>
+ARG BUILD_PACKAGES=<%= @build_packages.join(' ').inspect %>
 ENV BUILD_PACKAGES ${BUILD_PACKAGES}
 
 RUN --mount=type=cache,id=dev-apt-cache,sharing=locked,target=/var/cache/apt \
@@ -92,12 +99,24 @@ RUN npm install
 
 <% end -%>
 #######################################################################
+<% if @litefs -%>
 
+# Fetch the LiteFS binary
+FROM flyio/litefs:pr-109 AS litefs
+
+#######################################################################
+<% end %>
 # install deployment packages
 
 FROM base
 
-ARG DEPLOY_PACKAGES="postgresql-client file vim curl gzip libsqlite3-0"
+<%
+  @deploy_packages = %w(file vim curl gzip)
+  @deploy_packages << 'postgresql-client' if @postgresql
+  @deploy_packages << 'libsqlite3-0' if @sqlite3
+  @deploy_packages << 'fuse' if @litefs
+-%>
+ARG DEPLOY_PACKAGES=<%= @deploy_packages.join(' ').inspect %>
 ENV DEPLOY_PACKAGES=${DEPLOY_PACKAGES}
 
 RUN --mount=type=cache,id=prod-apt-cache,sharing=locked,target=/var/cache/apt \
@@ -116,6 +135,16 @@ COPY --from=gems /usr/local/bundle /usr/local/bundle
 # copy installed node modules
 COPY --from=node_modules /app/node_modules /app/node_modules
 
+<% end -%>
+<% if @litefs -%>
+# copy litefs binary
+COPY --from=litefs /usr/local/bin/litefs /usr/local/bin/litefs
+
+# Copy our LiteFS configuration.
+ADD config/litefs.yml /etc/litefs.yml
+
+# Create mount point
+RUN mkdir /data
 <% end -%>
 #######################################################################
 
@@ -140,6 +169,10 @@ RUN ${BUILD_COMMAND}
 
 # Default server start instructions.  Generally Overridden by fly.toml.
 ENV PORT 8080
+<% if @litefs -%>
+ARG SERVER_COMMAND="litefs"
+<% else -%>
 ARG SERVER_COMMAND="bin/rails fly:server"
+<% end -%>
 ENV SERVER_COMMAND ${SERVER_COMMAND}
 CMD ${SERVER_COMMAND}

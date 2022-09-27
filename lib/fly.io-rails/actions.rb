@@ -16,8 +16,11 @@ module Fly
     include Fly::Scanner
     attr_accessor :options
 
-    def initialize(app, regions = nil)
+    def initialize(app, options={})
       self.app = app
+      regions = options[:region].flatten || []
+      @litefs = options[:litefs]
+      @set_stage = options[:nomad] ? 'set' : 'set --stage'
 
       @ruby_version = RUBY_VERSION
       @bundler_version = Bundler::VERSION
@@ -37,6 +40,7 @@ module Fly
       end
 
       @region = @regions.first || 'iad'
+      @regions = [@region] if @regions.empty?
 
       @config = Fly::DSL::Config.new
       if File.exist? 'config/fly.rb'
@@ -87,6 +91,10 @@ module Fly
       app_template 'fly.rake.erb', 'lib/tasks/fly.rake'
     end
 
+    def generate_litefs
+      app_template 'litefs.yml.erb', 'config/litefs.yml'
+    end
+
     def generate_key
       credentials = nil
       if File.exist? 'config/credentials/production.key'
@@ -96,8 +104,8 @@ module Fly
       end
   
       if credentials
-        say_status :run, "flyctl secrets set --stage RAILS_MASTER_KEY from #{credentials}"
-        system "flyctl secrets set --stage RAILS_MASTER_KEY=#{IO.read(credentials).chomp}"
+        say_status :run, "flyctl secrets #{@set_stage} RAILS_MASTER_KEY from #{credentials}"
+        system "flyctl secrets #{@set_stage} RAILS_MASTER_KEY=#{IO.read(credentials).chomp}"
         puts
       end
   
@@ -126,9 +134,9 @@ module Fly
     def create_volume(app, region, size)
       volume = "#{app.gsub('-', '_')}_volume"
       volumes = JSON.parse(`flyctl volumes list --json`).
-        map {|volume| volume['Name']}
+        map {|volume| [volume['Name'], volume['Region']]}
 
-      unless volumes.include? volume
+      unless volumes.include? [volume, region]
         cmd = "flyctl volumes create #{volume} --app #{app} --region #{region} --size #{size}"
         say_status :run, cmd
         system cmd
@@ -204,7 +212,13 @@ module Fly
       end
 
       if @sqlite3
-        @volume = create_volume(app, @region, @config.sqlite3.size) 
+        if @litefs
+          @regions.each do |region|
+            @volume = create_volume(app, region, @config.sqlite3.size) 
+          end
+        else
+          @volume = create_volume(app, @region, @config.sqlite3.size) 
+        end
       elsif @postgresql and not secrets.include? 'DATABASE_URL'
         secret = create_postgres(app, @org, @region,
           @config.postgres.vm_size,
@@ -212,7 +226,7 @@ module Fly
           @config.postgres.initial_cluster_size)
 
         if secret
-          cmd = "flyctl secrets set --stage DATABASE_URL=#{secret}"
+          cmd = "flyctl secrets #{@set_stage} DATABASE_URL=#{secret}"
           say_status :run, cmd
           system cmd
         end
@@ -225,7 +239,7 @@ module Fly
         secret = create_redis(app, @org, @region, eviction)
 
         if secret
-          cmd = "flyctl secrets set --stage REDIS_URL=#{secret}"
+          cmd = "flyctl secrets #{@set_stage} REDIS_URL=#{secret}"
           say_status :run, cmd
           system cmd
         end
@@ -293,6 +307,10 @@ module Fly
         config[:env] = {
           "DATABASE_URL" => "sqlite3:///mnt/volume/production.sqlite3"
         }
+
+        if @litefs
+          config[:env]['DATABASE_URL'] = "sqlite3:///data/production.sqlite3"
+        end
       end
 
       # process toml overrides
