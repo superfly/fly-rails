@@ -20,7 +20,7 @@ module Fly
       self.app = app
       regions = options[:region].flatten || []
       @litefs = options[:litefs]
-      @set_stage = options[:nomad] ? 'set' : 'set --stage'
+      @nomad = options[:nomad]
 
       @ruby_version = RUBY_VERSION
       @bundler_version = Bundler::VERSION
@@ -29,8 +29,7 @@ module Fly
       @node_version = @node ? `node --version`.chomp.sub(/^v/, '') : '16.17.0'
       @org = Fly::Machines.org
 
-      @options = {}
-      @destination_stack = [Dir.pwd]
+      @set_stage = @nomad ? 'set' : 'set --stage'
 
       if !regions or regions.empty?
         @regions = JSON.parse(`flyctl regions list --json --app #{app}`)['Regions'].
@@ -147,6 +146,7 @@ module Fly
 
     def create_postgres(app, org, region, vm_size, volume_size, cluster_size)
       cmd = "flyctl postgres create --name #{app}-db --org #{org} --region #{region} --vm-size #{vm_size} --volume-size #{volume_size} --initial-cluster-size #{cluster_size}"
+      cmd += ' --machines' unless @nomad
       say_status :run, cmd
       output = FlyIoRails::Utils.tee(cmd)
       output[%r{postgres://\S+}]
