@@ -2,9 +2,7 @@
 
 Add [Fly.io](https://fly.io) support to [Rails](https://rubyonrails.org/).
 
-## Status
-
-<u>alpha</u>.
+## Usage
 
 For usage instructions, see the following guides:
 
@@ -12,12 +10,12 @@ For usage instructions, see the following guides:
   * [Lite FS](https://fly.io/docs/rails/advanced-guides/litefs/)
   * [Terraform](https://fly.io/docs/rails/advanced-guides/terraform/)
 
-## Key files:
+## Key files
 
   * Entrypoints: [lib/tasks/fly.rake](./lib/tasks/fly.rake), [lib/generators/app_generator.rb](./lib/generators/app_generator.rb), [lib/generators/terraform_generator.rb](.lib/generators/terraform_generator.rb) contain the deploy task, fly:app generator and
   fly:terraform generator respectively.
-  * [lib/fly.io-rails/actions.rb](./lib/fly.io-rails/actions.rb) contains thor actions used by the
-  rake task and generators.  Does some funky stuff to allow thor actions to
+  * [lib/fly.io-rails/actions.rb](./lib/fly.io-rails/actions.rb) contains Thor actions used by the
+  rake task and generators.  Does some funky stuff to allow Thor actions to
   be called from Rake.
   * [lib/fly.io-rails/machines.rb](./lib/fly.io-rails/machines.rb) wraps Fly.io's machine API as a Ruby module.
   * [lib/generators/templates](./lib/generators/templates) contains erb
