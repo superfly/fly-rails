@@ -23,7 +23,7 @@ module Fly
 
       # extract options
       self.app = app
-      regions = options[:region].flatten || []
+      regions = options[:region]&.flatten || []
       @litefs = options[:litefs]
       @nomad = options[:nomad]
 
