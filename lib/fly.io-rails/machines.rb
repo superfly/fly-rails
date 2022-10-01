@@ -160,9 +160,18 @@ module Fly
       api(path) {|uri| request = Net::HTTP::Delete.new(uri) }
     end
 
+    # graphql -- see https://til.simonwillison.net/fly/undocumented-graphql-api
+    def self.graphql(query)
+      api('/graphql', 'https://api.fly.io') do |uri|
+        request = Net::HTTP::Post.new(uri)
+        request.body = { query: query }.to_json
+        request
+      end
+    end
+
     # common processing for all APIs
-    def self.api(path, &make_request)
-      uri = URI("http://#{fly_api_hostname}#{path}")
+    def self.api(path, host=nil, &make_request)
+      uri = URI("http://#{host || fly_api_hostname}#{path}")
       http = Net::HTTP.new(uri.host, uri.port)
 
       request = make_request.call(uri.request_uri)
