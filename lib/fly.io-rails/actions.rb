@@ -17,11 +17,17 @@ module Fly
     attr_accessor :options
 
     def initialize(app, options={})
+      # placate thor
+      @options = {}
+      @destination_stack = [Dir.pwd]
+
+      # extract options
       self.app = app
       regions = options[:region].flatten || []
       @litefs = options[:litefs]
       @nomad = options[:nomad]
 
+      # prepare template variablesl
       @ruby_version = RUBY_VERSION
       @bundler_version = Bundler::VERSION
       @node = File.exist? 'node_modules'
@@ -31,6 +37,7 @@ module Fly
 
       @set_stage = @nomad ? 'set' : 'set --stage'
 
+      # determine region
       if !regions or regions.empty?
         @regions = JSON.parse(`flyctl regions list --json --app #{app}`)['Regions'].
           map {|region| region['Code']} rescue []
@@ -41,11 +48,13 @@ module Fly
       @region = @regions.first || 'iad'
       @regions = [@region] if @regions.empty?
 
+      # Process DSL
       @config = Fly::DSL::Config.new
       if File.exist? 'config/fly.rb'
         @config.instance_eval IO.read('config/fly.rb')
       end
 
+      # set additional variables based on application source
       scan_rails_app
     end
 
