@@ -162,8 +162,8 @@ module Fly
 
     # graphql -- see https://til.simonwillison.net/fly/undocumented-graphql-api
     def self.graphql(query)
-      api('/graphql', 'https://api.fly.io') do |uri|
-        request = Net::HTTP::Post.new(uri)
+      api('/graphql', 'https://api.fly.io/') do |path|
+        request = Net::HTTP::Post.new(path)
         request.body = { query: query }.to_json
         request
       end
@@ -172,8 +172,9 @@ module Fly
     # common processing for all APIs
     def self.api(path, host=nil, &make_request)
       host ||= "http://#{fly_api_hostname}"
-      uri = URI("#{host}#{path}")
+      uri = URI.join(host, path)
       http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true if uri.instance_of? URI::HTTPS
 
       request = make_request.call(uri.request_uri)
 
