@@ -11,7 +11,7 @@ class FlyIoRailtie < Rails::Railtie
   end
 
   # set FLY_IMAGE_NAME on nomad vms
-  if not ENV['FLY_IMAGE_NAME'] and ENV['FLY_APP_NAME']
+  if not ENV['FLY_IMAGE_NAME'] and ENV['FLY_APP_NAME'] and ENV['FLY_API_TOKEN']
     ENV['FLY_IMAGE_REF'] = Fly::Machines.graphql(%{
       query {
 	app(name: "#{ENV['FLY_APP_NAME']}") {
