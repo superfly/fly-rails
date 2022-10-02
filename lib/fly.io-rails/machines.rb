@@ -171,7 +171,8 @@ module Fly
 
     # common processing for all APIs
     def self.api(path, host=nil, &make_request)
-      uri = URI("http://#{host || fly_api_hostname}#{path}")
+      host ||= "http://#{fly_api_hostname}"
+      uri = URI("#{host}#{path}")
       http = Net::HTTP.new(uri.host, uri.port)
 
       request = make_request.call(uri.request_uri)
