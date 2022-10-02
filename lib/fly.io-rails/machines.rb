@@ -10,7 +10,7 @@ module Fly
   # the caller is trusted and does pass through unsanitized user input.
   #
   module Machines
-    @@api_token = nil
+    @@api_token = ENV['FLY_API_TOKEN']
     @@fly_api_hostname = nil
 
     # determine fly api hostname.  Returns nil if no proxy is running
@@ -176,7 +176,7 @@ module Fly
 
       request = make_request.call(uri.request_uri)
 
-      @@api_token ||= `fly auth token`.chomp
+      @@api_token ||= `flyctl auth token`.chomp
       headers = {
         "Authorization" => "Bearer #{@@api_token}",
         "Content-Type" => "application/json",
