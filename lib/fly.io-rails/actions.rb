@@ -99,6 +99,11 @@ module Fly
       app_template 'fly.rake.erb', 'lib/tasks/fly.rake'
     end
 
+    def generate_procfile
+      return unless @sidekiq
+      app_template 'Procfile.fly.erb', 'Procfile.fly'
+    end
+
     def generate_litefs
       app_template 'litefs.yml.erb', 'config/litefs.yml'
     end

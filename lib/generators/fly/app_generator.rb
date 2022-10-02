@@ -23,6 +23,7 @@ class AppGenerator < Rails::Generators::Base
     action.generate_dockerfile unless File.exist? 'Dockerfile'
     action.generate_dockerignore unless File.exist? '.dockerignore'
     action.generate_raketask unless File.exist? 'lib/tasks/fly.rake'
+    action.generate_procfile unless File.exist? 'Procfile.rake'
     action.generate_litefs if options[:litefs] and not File.exist? 'config/litefs'
     action.generate_patches
     action.generate_ipv4

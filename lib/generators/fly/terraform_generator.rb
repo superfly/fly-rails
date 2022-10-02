@@ -22,6 +22,7 @@ class TerraformGenerator < Rails::Generators::Base
     action.generate_dockerignore
     action.generate_terraform
     action.generate_raketask
+    action.generate_procfile
     action.generate_patches
 
     action.generate_key

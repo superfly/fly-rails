@@ -81,6 +81,9 @@ RUN gem update --system --no-document && \
 
 COPY Gemfile* ./
 RUN bundle install &&  rm -rf vendor/bundle/ruby/*/cache
+<% if @sidekiq -%>
+RUN gem install foreman
+<% end -%>
 
 <% if @node -%>
 #######################################################################

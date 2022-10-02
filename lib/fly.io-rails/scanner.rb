@@ -12,6 +12,8 @@ module Fly
         @postgresql = true
       end
 
+      @sidekiq = IO.read('Gemfile').include? 'sidekiq' rescue false
+
       if (YAML.load_file('config/cable.yml').dig('production', 'adapter') rescue false)
         @redis_cable = true
       end
@@ -20,7 +22,7 @@ module Fly
         @redis_cache = true
       end
 
-      @redis = @redis_cable || @redis_cache
+      @redis = @redis_cable || @redis_cache || @sidekiq
     end
   end
 end
