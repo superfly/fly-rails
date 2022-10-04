@@ -25,8 +25,8 @@ processes = []
 <% end -%>
 
 [mounts]
-source = <%= "#{app.gsub('-', '_')}_volume".inspect %>
-destination = "/mnt/volume"
+  source = <%= "#{app.gsub('-', '_')}_volume".inspect %>
+  destination = "/mnt/volume"
 <% end -%>
 
 [experimental]
