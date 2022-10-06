@@ -26,8 +26,9 @@ module Fly
       regions = options[:region]&.flatten || []
       @litefs = options[:litefs]
       @nomad = options[:nomad]
+      @passenger = options[:passenger]
 
-      # prepare template variablesl
+      # prepare template variables
       @ruby_version = RUBY_VERSION
       @bundler_version = Bundler::VERSION
       @node = File.exist? 'node_modules'
@@ -56,6 +57,11 @@ module Fly
 
       # set additional variables based on application source
       scan_rails_app
+
+      # determine processes
+      @procs = {web: 'bin/rails server'}
+      @procs[:web] = "nginx -g 'daemon off;'" if @passenger
+      @procs[:worker] = 'bundle exec sidekiq' if @sidekiq
     end
 
     def app
@@ -91,6 +97,11 @@ module Fly
       app_template 'dockerignore.erb', '.dockerignore'
     end
 
+    def generate_nginx_conf
+      return unless @passenger
+      app_template 'nginx.conf.erb', 'config/nginx.conf'
+    end
+
     def generate_terraform
       app_template 'main.tf.erb', 'main.tf'
     end
@@ -100,7 +111,7 @@ module Fly
     end
 
     def generate_procfile
-      return unless @sidekiq
+      return unless @procs.length > 1
       app_template 'Procfile.fly.erb', 'Procfile.fly'
     end
 

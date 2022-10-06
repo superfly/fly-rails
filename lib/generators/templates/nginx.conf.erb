@@ -1,0 +1,12 @@
+server {
+    listen 8080;
+    server_name <%= @app %>.fly.dev;
+    root /app/public;
+
+    passenger_enabled on;
+    passenger_ruby /usr/lib/fullstaq-ruby/versions/<%= @ruby_version %>-jemalloc/bin/ruby;
+
+    # Nginx has a default limit of 1 MB for request bodies, which also applies
+    # to file uploads. The following line enables uploads of up to 50 MB:
+    client_max_body_size 50M;
+}

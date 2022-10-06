@@ -28,12 +28,12 @@ namespace :fly do
   <%- else -%>
   task :server => :swapfile do
   <%- end -%>
-  <%- if @sidekiq -%>
+  <%- if @procs.length > 1 -%>
     Bundler.with_original_env do
       sh 'foreman start --procfile=Procfile.fly'
     end
   <%- else -%>
-    sh 'bin/rails server'
+    sh <%= @procs.values.first.inspect %>
   <%- end -%>
   end
 

@@ -81,7 +81,7 @@ RUN gem update --system --no-document && \
 
 COPY Gemfile* ./
 RUN bundle install &&  rm -rf vendor/bundle/ruby/*/cache
-<% if @sidekiq -%>
+<% if @procs.length > 1 -%>
 RUN gem install foreman
 <% end -%>
 
@@ -115,6 +115,7 @@ FROM base
 
 <%
   @deploy_packages = %w(file vim curl gzip)
+  @deploy_packages += %w(nginx passenger libnginx-mod-http-passenger) if @passenger
   @deploy_packages << 'postgresql-client' if @postgresql
   @deploy_packages << 'libsqlite3-0' if @sqlite3
   @deploy_packages << 'fuse' if @litefs
@@ -122,6 +123,13 @@ FROM base
 ARG DEPLOY_PACKAGES=<%= @deploy_packages.join(' ').inspect %>
 ENV DEPLOY_PACKAGES=${DEPLOY_PACKAGES}
 
+<% if @passenger -%>
+RUN apt-get install -y dirmngr gnupg apt-transport-https ca-certificates curl && \
+  curl https://oss-binaries.phusionpassenger.com/auto-software-signing-gpg-key.txt | \
+    gpg --dearmor > /etc/apt/trusted.gpg.d/phusion.gpg && \
+  sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger bullseye main > /etc/apt/sources.list.d/passenger.list'
+
+<% end -%>
 RUN --mount=type=cache,id=prod-apt-cache,sharing=locked,target=/var/cache/apt \
     --mount=type=cache,id=prod-apt-lib,sharing=locked,target=/var/lib/apt \
     apt-get update -qq && \
@@ -150,6 +158,10 @@ ADD config/litefs.yml /etc/litefs.yml
 RUN mkdir /data
 <% end -%>
 #######################################################################
+<% if @passenger -%>
+
+COPY config/nginx.conf /etc/nginx/sites-enabled/rails.conf
+<% end -%>
 
 # Deploy your application
 COPY . .

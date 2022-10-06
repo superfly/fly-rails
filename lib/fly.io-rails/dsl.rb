@@ -2,26 +2,26 @@ module Fly
   module DSL
     class Base
       def initialize
-	@value = {}
+        @value = {}
       end
 
       def self.option name, default=nil
-	@options ||= {}
-	@options[name] = default
+        @options ||= {}
+        @options[name] = default
 
-	define_method name do |*args|
-	  if args.length == 1
-	    @value[name] =  args.first
-	  elsif args.length > 1
-	    raise ArgumentError.new("wrong number of arguments (given #{args.length}, expected 0..1)")
-	  end
+        define_method name do |*args|
+          if args.length == 1
+            @value[name] =  args.first
+          elsif args.length > 1
+            raise ArgumentError.new("wrong number of arguments (given #{args.length}, expected 0..1)")
+          end
 
-	  @value.include?(name) ? @value[name] : default
-	end
+          @value.include?(name) ? @value[name] : default
+        end
       end
 
       def self.options
-	@options ||= {}
+        @options ||= {}
       end
     end
 
@@ -53,21 +53,21 @@ module Fly
       @@blocks = {}
 
       def initialize
-	@config = {}
+        @config = {}
       end
 
       def self.block name, kind
-	@@blocks[name] = kind
+        @@blocks[name] = kind
 
-	define_method name do |&block| 
-	  @config[name] ||= kind.new
-	  @config[name].instance_eval(&block) if block
-	  @config[name]
-	end
+        define_method name do |&block| 
+          @config[name] ||= kind.new
+          @config[name].instance_eval(&block) if block
+          @config[name]
+        end
       end
 
       def self.blocks
-	@@blocks
+        @@blocks
       end
 
       block :machine, Machine
