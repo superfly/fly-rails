@@ -160,7 +160,13 @@ RUN mkdir /data
 #######################################################################
 <% if @passenger -%>
 
-COPY config/nginx.conf /etc/nginx/sites-enabled/rails.conf
+# configure nginx/passenger
+COPY config/nginx.conf /etc/nginx/sites-available/rails.conf
+RUN rm /etc/nginx/sites-enabled/default && \
+    ln -s /etc/nginx/sites-available/rails.conf /etc/nginx/sites-enabled/
+<% if @serverless -%>
+COPY config/hook_detached_process /etc/nginx/
+<% end -%> 
 <% end -%>
 
 # Deploy your application

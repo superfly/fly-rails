@@ -11,6 +11,7 @@ class AppGenerator < Rails::Generators::Base
 
   class_option :litefs, type: :boolean, default: false
   class_option :passenger, type: :boolean, default: false
+  class_option :serverless, type: :boolean, default: false
 
   def generate_app
     source_paths.push File.expand_path('../templates', __dir__)

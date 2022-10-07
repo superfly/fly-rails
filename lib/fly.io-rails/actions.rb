@@ -27,6 +27,7 @@ module Fly
       @litefs = options[:litefs]
       @nomad = options[:nomad]
       @passenger = options[:passenger]
+      @serverless = options[:serverless]
 
       # prepare template variables
       @ruby_version = RUBY_VERSION
@@ -100,6 +101,11 @@ module Fly
     def generate_nginx_conf
       return unless @passenger
       app_template 'nginx.conf.erb', 'config/nginx.conf'
+
+      if @serverless
+        app_template 'hook_detached_process.erb', 'config/hook_detached_process'
+        FileUtils.chmod 'u+x', 'config/hook_detached_process'
+      end
     end
 
     def generate_terraform

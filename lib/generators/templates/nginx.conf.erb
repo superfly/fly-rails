@@ -1,3 +1,9 @@
+<% if @serverless -%>
+passenger_ctl hook_detached_process /etc/nginx/hook_detached_process;
+passenger_min_instances 0;
+passenger_pool_idle_time 300;
+
+<% end -%>
 server {
     listen 8080;
     server_name <%= @app %>.fly.dev;
@@ -6,6 +12,17 @@ server {
     passenger_enabled on;
     passenger_ruby /usr/lib/fullstaq-ruby/versions/<%= @ruby_version %>-jemalloc/bin/ruby;
 
+<% if @cable -%>
+location / {
+  passenger_app_group_name <%= @app%>;
+}
+
+location /cable {
+  passenger_app_group_name <%= @app%>-cable;
+  passenger_force_max_concurrent_requests_per_process 0;
+}
+
+<% end -%>
     # Nginx has a default limit of 1 MB for request bodies, which also applies
     # to file uploads. The following line enables uploads of up to 50 MB:
     client_max_body_size 50M;

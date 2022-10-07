@@ -14,8 +14,10 @@ module Fly
 
       @sidekiq = IO.read('Gemfile').include? 'sidekiq' rescue false
 
+      @cable = ! Dir['app/channels/*.rb'].empty?
+
       if (YAML.load_file('config/cable.yml').dig('production', 'adapter') rescue false)
-        @redis_cable = true
+        @redis_cable = @cable
       end
 
       if (IO.read('config/environments/production.rb') =~ /redis/i rescue false)

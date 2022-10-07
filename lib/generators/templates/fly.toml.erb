@@ -43,8 +43,13 @@ processes = []
   protocol = "tcp"
   script_checks = []
   [services.concurrency]
+<% if @cable -%>
+    hard_limit = 2500
+    soft_limit = 2000
+<% else -%>
     hard_limit = 25
     soft_limit = 20
+<% end -%>
     type = "connections"
 
   [[services.ports]]

@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+status = `passenger-status`
+
+processes = status[/^Processes\s*:\s*(\d*)/, 1].to_i
+<% if @cable -%>
+cable = status[/^<%= @app %>-cable.*?\n\n/m]
+processes -= 1 if cable and cable =~ /Sessions:\s*[1-9]/
+<% end -%>
+
+system 'nginx -s stop' if processes == 0
