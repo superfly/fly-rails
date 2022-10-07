@@ -10,6 +10,23 @@ For usage instructions, see the following guides:
   * [Lite FS](https://fly.io/docs/rails/advanced-guides/litefs/)
   * [Terraform](https://fly.io/docs/rails/advanced-guides/terraform/)
 
+## Generator options
+
+  * `--name` name of the application.  If a name is not provided, one will be generated for you.
+  * `--org` the organization to operate on.  Defaults to `personal`.
+  * `--region` region to launch the application in.  Accepts multiple values, and can be specified multiple times.
+  * `--nomad` generates a nomad application instead of a machines application.
+  * `--litefs` adds support for replicated sqlite3 databases via [litefs](https://fly.io/blog/introducing-litefs/).  Only works on nomad machines currently.
+  * `--passenger` run your Rails application with [nginx](https://www.nginx.com/) and [Phusion Passenger](https://www.phusionpassenger.com/).
+  * `--serverless` configures your application to exit after 5 minutes of inactivity.  Machines will automatically restart when next accessed.  Only works with passenger currently.
+
+## Automatically detected features
+
+  * _sqlite3_: if the production database is sqlite3 a volume will be allocated and the database will be put there.
+  * _postgres_: if the production database is postgres a postgres machine will be allocated
+  * _redis_: if redis is used for action cable, caching, or sidekiq your redis database will be added to this application.  If you don't currently have a redis database, one will be allocated.  If redis is used for caching, eviction will be turned on.
+  * _sidekiq_: if sidekiq is used it will be launched along side of your rails application.
+
 ## Key files
 
   * Entrypoints: [lib/tasks/fly.rake](./lib/tasks/fly.rake), [lib/generators/app_generator.rb](./lib/generators/app_generator.rb), [lib/generators/terraform_generator.rb](.lib/generators/terraform_generator.rb) contain the deploy task, fly:app generator and
