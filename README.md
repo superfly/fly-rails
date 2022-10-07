@@ -22,6 +22,8 @@ For usage instructions, see the following guides:
 
 ## Automatically detected features
 
+  * _ruby_: the deployed application will use the same version of ruby and bundler as your development environment.
+  * _node_: if the use of node is detected, node, yarn, and your npm packages will be installed.
   * _sqlite3_: if the production database is sqlite3 a volume will be allocated and the database will be put there.
   * _postgres_: if the production database is postgres a postgres machine will be allocated
   * _redis_: if redis is used for action cable, caching, or sidekiq your redis database will be added to this application.  If you don't currently have a redis database, one will be allocated.  If redis is used for caching, eviction will be turned on.
