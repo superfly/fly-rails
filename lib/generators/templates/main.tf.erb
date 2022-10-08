@@ -2,9 +2,14 @@ terraform {
   required_providers {
     fly = {
       source = "fly-apps/fly"
-      version = "0.0.18"
+      version = "0.0.20"
     }
   }
+}
+
+variable "image_ref" {
+  type        = string
+  description = "docker images containing the application"
 }
 
 /* uncomment if you want an internal tunnel
@@ -49,7 +54,7 @@ resource "fly_machine" "<%= @appName %>Machine" {
 
   app    = <%= @app.inspect %>
   name   = "<%= @app %>-${each.value}"
-  image  = "quay.io/evl.ms/fullstaq-ruby:<%= @ruby_version %>-jemalloc-slim"
+  image  = var.image_ref
 
   # Scale application resources
   cpus     = 1

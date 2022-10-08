@@ -204,7 +204,7 @@ module Fly
       start = Fly::Machines.create_and_start_machine(app, config: config)
       machine = start[:id]
 
-      if !machine
+      if not machine
         STDERR.puts 'Error starting release machine'
         PP.pp start, STDERR
         exit 1
@@ -214,24 +214,27 @@ module Fly
         timeout: 60, state: 'started'
 
       # wait for release to copmlete
-      status = nil
       5.times do
         status = Fly::Machines.wait_for_machine app, machine,
-          timeout: 60, state: 'stopped'
-        return machine if status[:ok]
+          instance_id: start[:instance_id], timeout: 60, state: 'stopped'
+        break if status[:ok]
       end
 
-      # wait for release to copmlete
-      event = nil
-      90.times do
-        sleep 1
-        status = Fly::Machines.get_a_machine app, machine
-        event = status[:events]&.first
-        return machine if event && event[:type] == 'exit'
-      end
+      if status and status[:ok]
+        event = nil
+        300.times do
+          status = Fly::Machines.get_a_machine app, start[:id]
+          event = status[:events]&.first
+          break if event[:type] == 'exit'
+          sleep 0.2
+        end
 
-      STDERR.puts event.to_json
-      exit 1
+        exit_code = event&.dig(:request, :exit_event, :exit_code)
+        Fly::Machines.delete_machine app, machine if machine
+        return event, exit_code, machine
+      else
+        return status, nil, nil
+      end
     end
 
     def launch(app)
@@ -313,8 +316,14 @@ module Fly
 
         # perform release
         say_status :fly, release_config[:env]['SERVER_COMMAND']
-        machine = release(app, release_config)
-        Fly::Machines.delete_machine app, machine if machine
+        event, exit_code, machine = release(app, release_config)
+
+        if exit_code != 0
+          STDERR.puts 'Error performing release'
+          STDERR.puts (exit_code ? {exit_code: exit_code} : event).inspect
+          STDERR.puts "run 'flyctl logs --instance #{machine}' for more information"
+          exit 1
+        end
 
         # start proxy, if necessary
         endpoint = Fly::Machines::fly_api_hostname!
@@ -374,18 +383,17 @@ module Fly
     end
 
     def terraform(app, image) 
-      # update main.tf with the image name
-      tf = IO.read('main.tf')
-      tf[/^\s*image\s*=\s*"(.*?)"/, 1] = image.strip
-      IO.write 'main.tf', tf
-
-      # find first machine in terraform config file
-      machines = Fly::HCL.parse(IO.read('main.tf')).find {|block|
-        block.keys.first == :resource and
-        block.values.first.keys.first == 'fly_machine'}
+      # find first machine using the image ref in terraform config file
+      machine = Fly::HCL.parse(IO.read('main.tf')).
+        map {|block| block.dig(:resource, 'fly_machine')}.compact.
+        find {|machine| machine.values.first[:image] == 'var.image_ref'}
+      if not machine
+        STDERR.puts 'unable to find fly_machine with image = var.image_ref in main.rf'
+        exit 1
+      end
 
       # extract HCL configuration for the machine
-      config = machines.values.first.values.first.values.first
+      config = machine.values.first
 
       # delete HCL specific configuration items
       %i(services for_each region app name depends_on).each do |key|
@@ -407,40 +415,25 @@ module Fly
       config[:env] ||= {}
       config[:env]['SERVER_COMMAND'] = 'bin/rails fly:release'
 
+      # fill in image
+      config[:image] = image
+
       # start proxy, if necessary
       endpoint = Fly::Machines::fly_api_hostname!
 
-      # start release machine
-      STDERR.puts "--> #{config[:env]['SERVER_COMMAND']}"
-      start = Fly::Machines.create_and_start_machine(app, config: config)
-      machine = start[:id]
-
-      if !machine
-        STDERR.puts 'Error starting release machine'
-        PP.pp start, STDERR
-        exit 1
+      # perform release, if necessary
+      if (IO.read('lib/tasks/fly.rake') rescue '') =~ /^\s*task[ \t]*+:?release"?[ \t]*\S/
+        say_status :fly, config[:env]['SERVER_COMMAND']
+        event, exit_code, machine = release(app, config)
+      else
+        exit_code = 0
       end
 
-      # wait for release to copmlete
-      event = nil
-      90.times do
-        sleep 1
-        status = Fly::Machines.get_a_machine app, machine
-        event = status[:events]&.first
-        break if event && event[:type] == 'exit'
-      end
-
-      # extract exit code
-      exit_code = event.dig(:request, :exit_event, :exit_code)
-               
       if exit_code == 0
-        # delete release machine
-        Fly::Machines.delete_machine app, machine
-
         # use terraform apply to deploy
         ENV['FLY_API_TOKEN'] = `flyctl auth token`.chomp
         ENV['FLY_HTTP_ENDPOINT'] = endpoint if endpoint
-        system 'terraform apply -auto-approve'
+        system "terraform apply -auto-approve -var=\"image_ref=#{image}\""
       else
         STDERR.puts 'Error performing release'
         STDERR.puts (exit_code ? {exit_code: exit_code} : event).inspect
