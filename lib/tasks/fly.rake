@@ -37,6 +37,13 @@ namespace :fly do
       action.generate_ipv6 if @app
       action.deploy(app, image)
     end
+
+    JSON.parse(`fly apps list --json`).each do |info|
+      if info['Name'] == app
+        response = Net::HTTP.get_response(URI::HTTPS.build(host: info['Hostname']))
+        puts "Server status: #{response.code} #{response.message}"
+      end
+    end
   end
 end
 
