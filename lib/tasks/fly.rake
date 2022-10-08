@@ -40,8 +40,13 @@ namespace :fly do
 
     JSON.parse(`fly apps list --json`).each do |info|
       if info['Name'] == app
-        response = Net::HTTP.get_response(URI::HTTPS.build(host: info['Hostname']))
-        puts "Server status: #{response.code} #{response.message}"
+        60.times do
+          response = Net::HTTP.get_response(URI::HTTPS.build(host: info['Hostname']))
+          puts "Server status: #{response.code} #{response.message}"
+          break
+        rescue Errno::ECONNRESET
+          sleep 0.5
+        end
       end
     end
   end
