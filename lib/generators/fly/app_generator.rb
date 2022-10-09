@@ -9,7 +9,9 @@ class AppGenerator < Rails::Generators::Base
   class_option :region, type: :array, repeatable: true, default: []
   class_option :nomad, type: :boolean, default: false
 
+  class_option :anycable, type: :boolean, default: false
   class_option :litefs, type: :boolean, default: false
+  class_option :redis, type: :boolean, default: false
   class_option :passenger, type: :boolean, default: false
   class_option :serverless, type: :boolean, default: false
 

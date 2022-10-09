@@ -12,7 +12,9 @@ module Fly
         @postgresql = true
       end
 
-      @sidekiq = IO.read('Gemfile').include? 'sidekiq' rescue false
+      gemfile = IO.read('Gemfile') rescue ''
+      @sidekiq = gemfile.include? 'sidekiq'
+      @anycable = gemfile.include? 'anycable'
 
       @cable = ! Dir['app/channels/*.rb'].empty?
 

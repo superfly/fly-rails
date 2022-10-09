@@ -26,6 +26,7 @@ module Fly
       regions = options[:region]&.flatten || []
       @litefs = options[:litefs]
       @nomad = options[:nomad]
+      @redis = :internal if options[:redis]
       @passenger = options[:passenger]
       @serverless = options[:serverless]
 
@@ -59,10 +60,28 @@ module Fly
       # set additional variables based on application source
       scan_rails_app
 
+      if options[:anycable] and not @anycable
+        # read and remove original config
+        original_config = YAML.load_file 'config/cable.yml'
+        File.unlink 'config/cable.yml'
+
+        system 'bundle exec rails generator anycable:setup --skip-heroku --skip-procfile-dev --skip-jwt --devenv=skip'
+
+        # copy production environment to original config
+        anycable_config = YAML.load_file 'config/cable.yml'
+        original_config['production'] = anycable_config['production']
+        File.write 'config/cable.yml', YAML.dump(original_config)
+
+        @anycable = true
+      end
+
       # determine processes
       @procs = {web: 'bin/rails server'}
       @procs[:web] = "nginx -g 'daemon off;'" if @passenger
       @procs[:worker] = 'bundle exec sidekiq' if @sidekiq
+      @procs[:redis] = 'redis-server /etc/redis/redis.conf' if @redis
+      @procs.merge! anycable: 'bundle exec anycable',
+        'anycable-go': '/usr/local/bin/anycable-go' if @anycable
     end
 
     def app
@@ -143,7 +162,9 @@ module Fly
     end
 
     def generate_patches
-      if @redis_cable and not File.exist? 'config/initializers/action_cable.rb'
+      if @redis_cable and not @anycable and @redis != :internal and
+        not File.exist? 'config/initializers/action_cable.rb'
+
         app
         template 'patches/action_cable.rb', 'config/initializers/action_cable.rb'
       end
@@ -266,7 +287,7 @@ module Fly
         end
       end
 
-      if @redis and not secrets.include? 'REDIS_URL'
+      if @redis and @redis == :internal and not secrets.include? 'REDIS_URL'
         # Set eviction policy to true if a cache provider, else false.
         eviction = @redis_cache ? '--enable-eviction' : '--disable-eviction'
 
