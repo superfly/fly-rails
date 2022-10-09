@@ -117,10 +117,17 @@ FROM base
   @deploy_packages << 'libsqlite3-0' if @sqlite3
   @deploy_packages << 'fuse' if @litefs
   @deploy_packages << 'ruby-foreman' if @procs.length > 1
-  @deploy_packages << 'redis' if @redis == :internal
+  @deploy_packages << 'redis-server' if @redis == :internal
 -%>
 ARG DEPLOY_PACKAGES=<%= @deploy_packages.join(' ').inspect %>
 ENV DEPLOY_PACKAGES=${DEPLOY_PACKAGES}
+
+RUN --mount=type=cache,id=prod-apt-cache,sharing=locked,target=/var/cache/apt \
+    --mount=type=cache,id=prod-apt-lib,sharing=locked,target=/var/lib/apt \
+    apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+    ${DEPLOY_PACKAGES} \
+    && rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 <% if @passenger -%>
 # install passenger
@@ -137,18 +144,10 @@ RUN curl -L https://github.com/anycable/anycable-go/releases/download/v1.2.1/any
 <% end -%>
 <% if @redis == :internal -%>
 # configure redis
-echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf
-sed -i 's/daemonize yes/daemonize no/' /etc/redis/redis.conf 
-sed -i 's/logfile .*/logfile stdout/' /etc/redis/redis.conf 
+RUN sed -i 's/^daemonize yes/daemonize no/' /etc/redis/redis.conf &&\
+  sed -i 's/^logfile/# logfile/' /etc/redis/redis.conf 
 
 <% end -%>
-RUN --mount=type=cache,id=prod-apt-cache,sharing=locked,target=/var/cache/apt \
-    --mount=type=cache,id=prod-apt-lib,sharing=locked,target=/var/lib/apt \
-    apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-    ${DEPLOY_PACKAGES} \
-    && rm -rf /var/lib/apt/lists /var/cache/apt/archives
-
 # copy installed gems
 COPY --from=gems /app /app
 COPY --from=gems /usr/lib/fullstaq-ruby/versions /usr/lib/fullstaq-ruby/versions

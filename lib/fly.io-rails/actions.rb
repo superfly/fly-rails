@@ -26,7 +26,6 @@ module Fly
       regions = options[:region]&.flatten || []
       @litefs = options[:litefs]
       @nomad = options[:nomad]
-      @redis = :internal if options[:redis]
       @passenger = options[:passenger]
       @serverless = options[:serverless]
 
@@ -59,13 +58,24 @@ module Fly
 
       # set additional variables based on application source
       scan_rails_app
+      @redis = :internal if options[:redis]
 
       if options[:anycable] and not @anycable
         # read and remove original config
         original_config = YAML.load_file 'config/cable.yml'
         File.unlink 'config/cable.yml'
 
-        system 'bundle exec rails generator anycable:setup --skip-heroku --skip-procfile-dev --skip-jwt --devenv=skip'
+        # add and configure anycable-rails
+        say_status :run, 'bundle add anycable-rails'
+        Bundler.with_original_env do
+          system 'bundle add anycable-rails'
+          system 'bin/rails generate anycable:setup --skip-heroku --skip-procfile-dev --skip-jwt --devenv=skip'
+        end
+
+        # insert action_cable_meta_tag
+        insert_into_file 'app/views/layouts/application.html.erb',
+          "    <%= action_cable_meta_tag %>\n",
+          after: "<%= csp_meta_tag %>\n"
 
         # copy production environment to original config
         anycable_config = YAML.load_file 'config/cable.yml'
@@ -287,7 +297,7 @@ module Fly
         end
       end
 
-      if @redis and @redis == :internal and not secrets.include? 'REDIS_URL'
+      if @redis and @redis != :internal and not secrets.include? 'REDIS_URL'
         # Set eviction policy to true if a cache provider, else false.
         eviction = @redis_cache ? '--enable-eviction' : '--disable-eviction'
 
@@ -345,18 +355,20 @@ module Fly
           STDERR.puts "run 'flyctl logs --instance #{machine}' for more information"
           exit 1
         end
+      end
 
-        # start proxy, if necessary
-        endpoint = Fly::Machines::fly_api_hostname!
+      # start proxy, if necessary
+      endpoint = Fly::Machines::fly_api_hostname!
 
-        # stop previous instances - list will fail on first run
-        stdout, stderr, status = Open3.capture3('fly machines list --json')
-        unless stdout.empty?
-          JSON.parse(stdout).each do |list|
-            next if list['id'] == machine
-            system "fly machines remove --force #{list['id']}"
-          end
-        end
+      # stop previous instances - list will fail on first run
+      stdout, stderr, status = Open3.capture3('fly machines list --json')
+      unless stdout.empty?
+	JSON.parse(stdout).each do |list|
+	  next if list['id'] == machine or list['state'] == 'destroyed'
+	  cmd = "fly machines remove --force #{list['id']}"
+	  say_status :run, cmd
+	  system cmd
+	end
       end
 
       # configure sqlite3 (can be overridden by fly.toml)

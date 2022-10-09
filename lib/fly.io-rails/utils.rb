@@ -29,6 +29,8 @@ module FlyIoRails
     end
 
     def create_app(name: nil, org: 'personal', regions: [], nomad: false, **rest)
+      return if File.exist? 'fly.toml'
+
       cmd = if name
         "flyctl apps create #{name.inspect} --org #{org.inspect} --machines"
       else
