@@ -23,14 +23,22 @@ namespace :fly do
   #  - full access to secrets, databases
   #  - failures here result in VM being stated, shutdown, and rolled back
   #    to last successful deploy (if any).
-  <%- if @sqlite3 -%>
-  task :server => [:swapfile, 'db:migrate'] do
-  <%- else -%>
-  task :server => :swapfile do
-  <%- end -%>
+  <%= begin
+    deps = @sqlite3 ? [:swapfile, 'db:migrate'] : :swapfile
+
+    if @procs.length > 1 ? ':server, [:formation]' : ':server'
+      "task :server, [:formation] => #{deps.inspect} do |task, args|"
+    else
+      "task :server => #{deps.inspect} do"
+    end
+  end %>
   <%- if @procs.length > 1 -%>
     Bundler.with_original_env do
-      sh 'foreman start --procfile=Procfile.fly'
+      if args[:formation]
+        sh "foreman start --procfile=Procfile.fly --formation=#{args[:formation]}"
+      else
+        sh 'foreman start --procfile=Procfile.fly'
+      end
     end
   <%- else -%>
     sh <%= @procs.values.first.inspect %>
@@ -55,6 +63,6 @@ namespace :fly do
     sh 'swapon /swapfile'
 <% if @redis == :internal -%>
     sh 'echo 1 > /proc/sys/vm/overcommit_memory'
-<% end %>
+<% end -%>
   end
 end
