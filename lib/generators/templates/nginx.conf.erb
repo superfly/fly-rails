@@ -4,6 +4,9 @@ passenger_min_instances 0;
 passenger_pool_idle_time 300;
 
 <% end -%>
+access_log /dev/stdout;
+error_log /dev/stdout info;
+
 server {
     listen 8080;
     server_name <%= @app %>.fly.dev;
@@ -11,6 +14,9 @@ server {
 
     passenger_enabled on;
     passenger_ruby /usr/lib/fullstaq-ruby/versions/<%= @ruby_version %>-jemalloc/bin/ruby;
+
+    passenger_env_var RAILS_SERVE_STATIC_FILES true;
+    passenger_env_var RAILS_LOG_TO_STDOUT true;
 
 <% if @cable -%>
 location / {

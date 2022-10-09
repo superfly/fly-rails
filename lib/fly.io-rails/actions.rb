@@ -90,7 +90,7 @@ module Fly
       @procs[:web] = "nginx -g 'daemon off;'" if @passenger
       @procs[:worker] = 'bundle exec sidekiq' if @sidekiq
       @procs[:redis] = 'redis-server /etc/redis/redis.conf' if @redis
-      @procs.merge! anycable: 'bundle exec anycable',
+      @procs.merge! 'anycable-rpc': 'bundle exec anycable',
         'anycable-go': '/usr/local/bin/anycable-go' if @anycable
     end
 
