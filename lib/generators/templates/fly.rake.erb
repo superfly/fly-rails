@@ -24,7 +24,9 @@ namespace :fly do
   #  - failures here result in VM being stated, shutdown, and rolled back
   #    to last successful deploy (if any).
   <%= begin
-    deps = @sqlite3 ? [:swapfile, 'db:migrate'] : :swapfile
+    deps = [:swapfile]
+    deps << 'db:migrate' if @sqlite3
+    deps = deps.first if deps.length == 1
 
     if @procs.length > 1 ? ':server, [:formation]' : ':server'
       "task :server, [:formation] => #{deps.inspect} do |task, args|"
@@ -33,12 +35,12 @@ namespace :fly do
     end
   end %>
   <%- if @procs.length > 1 -%>
+    formation = args[:formation] || <%= @procs.keys.map {|key| "#{key}=1"}.join(',').inspect %>
+    <%- if @avahi -%>
+    Rake::Task['fly:avahi_publish'].invoke(formation)
+    <%- end -%>
     Bundler.with_original_env do
-      if args[:formation]
-        sh "foreman start --procfile=Procfile.fly --formation=#{args[:formation]}"
-      else
-        sh 'foreman start --procfile=Procfile.fly'
-      end
+      sh "foreman start --procfile=Procfile.fly --formation=#{formation}"
     end
   <%- else -%>
     sh <%= @procs.values.first.inspect %>

@@ -65,7 +65,7 @@ namespace :fly do
     sleep 0.1
 
     ip = IPSocket.getaddress(Socket.gethostname)
-    args[:formation].scan(/(\w+)=(\d+)/).each do |name, count|
+    args[:formation].scan(/([-\w+])=(\d+)/).each do |name, count|
       next if count.to_i == 0
       pids << spawn("avahi-publish -a -R #{ENV['FLY_REGION']}-#{name}.local #{ip}")
     end
