@@ -129,6 +129,7 @@ RUN apt-get install -y dirmngr gnupg apt-transport-https ca-certificates curl &&
   @deploy_packages << 'fuse' if @litefs
   @deploy_packages << 'ruby-foreman' if @procs.length > 1
   @deploy_packages << 'redis-server' if @redis == :internal
+  @deploy_packages += %w(avahi-daemon avahi-utils) if @avahi
 -%>
 ARG DEPLOY_PACKAGES=<%= @deploy_packages.join(' ').inspect %>
 ENV DEPLOY_PACKAGES=${DEPLOY_PACKAGES}
@@ -172,6 +173,11 @@ ADD config/litefs.yml /etc/litefs.yml
 RUN mkdir /data
 <% end -%>
 #######################################################################
+<% if @avahi -%>
+
+# configure avahi for ipv6
+RUN sed -i 's/mdns4_minimal/mdns_minimal/' /etc/nsswitch.conf
+<% end %>
 <% if @passenger -%>
 
 # configure nginx/passenger

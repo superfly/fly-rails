@@ -50,6 +50,30 @@ namespace :fly do
       end
     end
   end
+
+  desc 'dbus daemon - used for IPC'
+  task :dbus_deamon do
+    IO.write '/var/lib/dbus/machine-id', `hostname`
+    mkdir_p '/var/run/dbus'
+    sh 'dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address'
+  end
+
+  desc 'Zeroconf/avahi/bonjour discovery'
+  task :avahi_publish, [:formation] => :dbus_deamon do |task, args|
+    pids = []
+    pids << spawn('avahi-daemon')
+    sleep 0.1
+
+    ip = IPSocket.getaddress(Socket.gethostname)
+    args[:formation].scan(/(\w+)=(\d+)/).each do |name, count|
+      next if count.to_i == 0
+      pids << spawn("avahi-publish -a -R #{ENV['FLY_REGION']}-#{name}.local #{ip}")
+    end
+
+    at_exit do
+      pids.each {|pid| Process.kill 7, pid}
+    end
+  end
 end
 
 # Alias, for convenience

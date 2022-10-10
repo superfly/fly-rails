@@ -24,6 +24,7 @@ module Fly
       # extract options
       self.app = app
       regions = options[:region]&.flatten || []
+      @avahi = options[:avahi]
       @litefs = options[:litefs]
       @nomad = options[:nomad]
       @passenger = options[:passenger]
