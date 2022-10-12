@@ -4,14 +4,17 @@ passenger_min_instances 0;
 passenger_pool_idle_time 300;
 
 <% end -%>
-access_log /dev/stdout;
-error_log /dev/stdout info;
+passenger_log_file /dev/stdout;
+passenger_default_user root;
 
 server {
     listen 8080 default_server;
     listen [::]:8080 default_server;
     server_name <%= @app %>.fly.dev;
     root /app/public;
+
+    access_log /dev/stdout;
+    error_log /dev/stdout info;
 
     passenger_enabled on;
     passenger_ruby /usr/lib/fullstaq-ruby/versions/<%= @ruby_version %>-jemalloc/bin/ruby;

@@ -184,9 +184,11 @@ RUN sed -i 's/mdns4_minimal/mdns_minimal/' /etc/nsswitch.conf
 COPY config/nginx.conf /etc/nginx/sites-available/rails.conf
 RUN rm /etc/nginx/sites-enabled/default && \
     ln -s /etc/nginx/sites-available/rails.conf /etc/nginx/sites-enabled/ && \
+    sed -i 's/user .*;/user root;/' /etc/nginx/nginx.conf && \
     sed -i '/^include/i include /etc/nginx/main.d/*.conf;' /etc/nginx/nginx.conf && \
     mkdir /etc/nginx/main.d && \
-    echo 'env RAILS_MASTER_KEY;' >> /etc/nginx/main.d/secrets.conf
+    echo 'env RAILS_MASTER_KEY;' >> /etc/nginx/main.d/env.conf &&\
+    echo 'env RAILS_LOG_TO_STDOUT;' >> /etc/nginx/main.d/env.conf
 <% if @serverless -%>
 COPY config/hook_detached_process /etc/nginx/
 <% end -%>
