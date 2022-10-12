@@ -397,23 +397,38 @@ module Fly
       end
 
       # start app
+      machines = {}
       say_status :fly, "start #{app}"
-      start = Fly::Machines.create_and_start_machine(app, config: config)
-      machine = start[:id]
+      if not toml['processes']
+        start = Fly::Machines.create_and_start_machine(app, config: config)
+        machines['app'] = start[:id] 
+      else
+        config[:env] ||= {}
+        toml['processes'].each do |name, entrypoint|
+          config[:env]['SERVER_COMMAND'] = entrypoint
+          start = Fly::Machines.create_and_start_machine(app, config: config)
+          machines[name] = start[:id] 
+        end
+      end
 
-      if !machine
+      if machines.empty?
         STDERR.puts 'Error starting application'
         PP.pp start, STDERR
         exit 1
       end
 
-      5.times do
-        status = Fly::Machines.wait_for_machine app, machine,
-          timeout: 60, status: 'started'
-        return if status[:ok]
+      timeout = Time.now + 300
+      while Time.now < timeout and not machines.empty?
+        machines.each do |name, machine|
+          status = Fly::Machines.wait_for_machine app, machine,
+           timeout: 10, status: 'started'
+          machines.delete name if status[:ok]
+        end
       end
 
-      STDERR.puts 'Timeout waiting for application to start'
+      unless machines.empty?
+        STDERR.puts 'Timeout waiting for application to start'
+      end
     end
 
     def terraform(app, image) 

@@ -35,7 +35,8 @@ namespace :fly do
     end
   end %>
   <%- if @procs.length > 1 -%>
-    formation = args[:formation] || <%= @procs.keys.map {|key| "#{key}=1"}.join(',').inspect %>
+    formation = args[:formation] || <%= @procs.keys.map {|key| "#{key}=1"}.join(';').inspect %>
+    formation.gsub! ';', ','
     <%- if @avahi -%>
     Rake::Task['fly:avahi_publish'].invoke(formation)
     <%- end -%>
