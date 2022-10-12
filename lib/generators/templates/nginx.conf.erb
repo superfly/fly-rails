@@ -8,27 +8,36 @@ access_log /dev/stdout;
 error_log /dev/stdout info;
 
 server {
-    listen 8080;
+    listen 8080 default_server;
+    listen [::]:8080 default_server;
     server_name <%= @app %>.fly.dev;
     root /app/public;
 
     passenger_enabled on;
     passenger_ruby /usr/lib/fullstaq-ruby/versions/<%= @ruby_version %>-jemalloc/bin/ruby;
 
-    passenger_env_var RAILS_SERVE_STATIC_FILES true;
-    passenger_env_var RAILS_LOG_TO_STDOUT true;
+<% if @anycable -%>
+   location /cable {
+        proxy_pass http://localhost:8082/cable;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+    }
 
-<% if @cable -%>
-location / {
-  passenger_app_group_name <%= @app%>;
-}
-
-location /cable {
-  passenger_app_group_name <%= @app%>-cable;
-  passenger_force_max_concurrent_requests_per_process 0;
-}
+<% elsif @cable -%>
+    location /cable {
+        passenger_app_group_name <%= @app %>-cable;
+        passenger_force_max_concurrent_requests_per_process 0;
+    }
 
 <% end -%>
+    location / {
+        passenger_app_group_name <%= @app %>;
+        passenger_env_var RAILS_SERVE_STATIC_FILES true;
+        passenger_env_var RAILS_LOG_TO_STDOUT true;
+    }
+
     # Nginx has a default limit of 1 MB for request bodies, which also applies
     # to file uploads. The following line enables uploads of up to 50 MB:
     client_max_body_size 50M;

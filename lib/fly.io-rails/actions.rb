@@ -92,7 +92,7 @@ module Fly
       @procs[:worker] = 'bundle exec sidekiq' if @sidekiq
       @procs[:redis] = 'redis-server /etc/redis/redis.conf' if @redis
       @procs.merge! 'anycable-rpc': 'bundle exec anycable',
-        'anycable-go': '/usr/local/bin/anycable-go' if @anycable
+        'anycable-go': '/usr/local/bin/anycable-go --port=8082' if @anycable
     end
 
     def app
