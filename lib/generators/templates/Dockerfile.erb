@@ -150,6 +150,7 @@ RUN curl -L https://github.com/anycable/anycable-go/releases/download/v1.2.1/any
 # configure redis
 RUN sed -i 's/^daemonize yes/daemonize no/' /etc/redis/redis.conf &&\
   sed -i 's/^bind/# bind/' /etc/redis/redis.conf &&\
+  sed -i 's/^protected-mode yes/protected-mode no/' /etc/redis/redis.conf &&\
   sed -i 's/^logfile/# logfile/' /etc/redis/redis.conf 
 
 <% end -%>
