@@ -18,6 +18,18 @@ namespace :fly do
   <%- end -%>
 
 <% end -%>
+<% if @avahi -%>
+  task :env do
+<% if @redis -%>
+    ENV['REDIS_URL'] = "redis://#{ENV['FLY_REGION']}-redis.local:6379/1"
+<% end -%>
+<% if @anycable -%>
+    ENV['ANYCABLE_RPC_HOST'] = "#{ENV['FLY_REGION']}-anycable-rpc.local:50051"
+    ENV['CABLE_URL'] = "#{ENV['FLY_REGION']}-anycable-go.local"
+<% end -%>
+  end
+
+<% end -%>
   # SERVER step:
   #  - changes to the filesystem made here are deployed
   #  - full access to secrets, databases
@@ -41,6 +53,9 @@ namespace :fly do
     Rake::Task['fly:avahi_publish'].invoke(formation)
     <%- end -%>
     Bundler.with_original_env do
+      <%- if @avahi -%>
+      # Rake::Task['fly:env'].invoke
+      <%- end -%>
       sh "foreman start --procfile=Procfile.fly --formation=#{formation}"
     end
   <%- else -%>

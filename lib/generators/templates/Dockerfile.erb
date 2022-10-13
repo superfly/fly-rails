@@ -188,6 +188,13 @@ RUN rm /etc/nginx/sites-enabled/default && \
     sed -i '/^include/i include /etc/nginx/main.d/*.conf;' /etc/nginx/nginx.conf && \
     mkdir /etc/nginx/main.d && \
     echo 'env RAILS_MASTER_KEY;' >> /etc/nginx/main.d/env.conf &&\
+<% if @redis -%>
+    echo 'env REDIS_URL;' >> /etc/nginx/main.d/env.conf &&\
+<% end -%>
+<% if @anycable -%>
+    echo 'env ANYCABLE_RPC_HOST;' >> /etc/nginx/main.d/env.conf &&\
+    echo 'env CABLE_URL;' >> /etc/nginx/main.d/env.conf &&\
+<% end -%>
     echo 'env RAILS_LOG_TO_STDOUT;' >> /etc/nginx/main.d/env.conf
 <% if @serverless -%>
 COPY config/hook_detached_process /etc/nginx/
