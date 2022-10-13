@@ -60,6 +60,9 @@ module Fly
       # set additional variables based on application source
       scan_rails_app
       @redis = :internal if options[:redis]
+      if File.exist? 'Procfile.fly'
+        @redis = :internal if IO.read('Procfile.fly') =~ /^redis/
+      end
 
       if options[:anycable] and not @anycable
         # read and remove original config
