@@ -108,7 +108,16 @@ RUN npm install
 FROM flyio/litefs:pr-109 AS litefs
 
 #######################################################################
-<% end %>
+<% end -%>
+<% if @anycable -%>
+
+# Build anycable
+FROM golang:1.18 as go
+RUN GOBIN=/usr/local/bin/ go install github.com/anycable/anycable-go/cmd/anycable-go@latest
+
+#######################################################################
+<% end -%>
+
 # install deployment packages
 
 FROM base
@@ -141,11 +150,6 @@ RUN --mount=type=cache,id=prod-apt-cache,sharing=locked,target=/var/cache/apt \
     ${DEPLOY_PACKAGES} \
     && rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-<% if @anycable -%>
-# install anycable
-RUN curl -L https://github.com/anycable/anycable-go/releases/download/v1.2.1/anycable-go-linux-amd64 -o /usr/local/bin/anycable-go && chmod 755 /usr/local/bin/anycable-go
-
-<% end -%>
 <% if @redis == :internal -%>
 # configure redis
 RUN sed -i 's/^daemonize yes/daemonize no/' /etc/redis/redis.conf &&\
@@ -162,6 +166,11 @@ COPY --from=gems /usr/local/bundle /usr/local/bundle
 <% if @node -%>
 # copy installed node modules
 COPY --from=node_modules /app/node_modules /app/node_modules
+
+<% end -%>
+<% if @anycable -%>
+# copy anycable-go
+COPY --from=go /usr/local/bin/anycable-go /usr/local/bin/anycable-go
 
 <% end -%>
 <% if @litefs -%>

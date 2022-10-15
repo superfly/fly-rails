@@ -24,8 +24,7 @@ namespace :fly do
     ENV['REDIS_URL'] = "redis://#{ENV['FLY_REGION']}-redis.local:6379/1"
 <% end -%>
 <% if @anycable -%>
-    ENV['ANYCABLE_RPC_HOST'] = "#{ENV['FLY_REGION']}-anycable-rpc.local:50051"
-    ENV['CABLE_URL'] = "#{ENV['FLY_REGION']}-anycable-go.local"
+    ENV['ANYCABLE_GO_RPC_HOST'] = "#{ENV['FLY_REGION']}-anycable-rpc.local:50051"
 <% end -%>
   end
 
@@ -54,7 +53,7 @@ namespace :fly do
     <%- end -%>
     Bundler.with_original_env do
       <%- if @avahi -%>
-      # Rake::Task['fly:env'].invoke
+      Rake::Task['fly:env'].invoke
       <%- end -%>
       sh "foreman start --procfile=Procfile.fly --formation=#{formation}"
     end
