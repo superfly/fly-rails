@@ -10,6 +10,8 @@ module Fly
         @sqlite3 = true
       elsif database == 'postgresql'
         @postgresql = true
+      elsif database == 'mysql' or database == 'mysql2'
+        @mysql = true
       end
 
       gemfile = IO.read('Gemfile') rescue ''
