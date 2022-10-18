@@ -17,6 +17,7 @@ module Fly
       gemfile = IO.read('Gemfile') rescue ''
       @sidekiq = gemfile.include? 'sidekiq'
       @anycable = gemfile.include? 'anycable'
+      @rmagick = gemfile.include? 'rmagick'
 
       @cable = ! Dir['app/channels/*.rb'].empty?
 

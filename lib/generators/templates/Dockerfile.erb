@@ -64,6 +64,7 @@ FROM base as build_deps
   @build_packages << 'libpq-dev' if @postgresql
   @build_packages << 'libsqlite3-dev' if @sqlite3
   @build_packages << 'default-libmysqlclient-dev' if @mysql
+  @build_packages += %w[pkg-config libmagickwand-dev] if @rmagick
 -%>
 ARG BUILD_PACKAGES=<%= @build_packages.join(' ').inspect %>
 ENV BUILD_PACKAGES ${BUILD_PACKAGES}
@@ -137,6 +138,7 @@ RUN apt-get install -y dirmngr gnupg apt-transport-https ca-certificates curl &&
   @deploy_packages << 'postgresql-client' if @postgresql
   @deploy_packages << 'libsqlite3-0' if @sqlite3
   @deploy_packages << 'default-mysql-client' if @mysql
+  @deploy_packages << 'imagemagick' if @rmagick
   @deploy_packages << 'fuse' if @litefs
   @deploy_packages << 'ruby-foreman' if @procs.length > 1
   @deploy_packages << 'redis-server' if @redis == :internal
