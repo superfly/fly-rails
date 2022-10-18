@@ -18,6 +18,7 @@ module Fly
       @sidekiq = gemfile.include? 'sidekiq'
       @anycable = gemfile.include? 'anycable'
       @rmagick = gemfile.include? 'rmagick'
+      @bootstrap = gemfile.include? 'bootstrap'
 
       @cable = ! Dir['app/channels/*.rb'].empty?
 
