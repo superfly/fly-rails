@@ -78,7 +78,7 @@ namespace :fly do
           dnsname = "#{ENV['FLY_REGION']}-#{name}.local"
           ping = `ping -q -c 1 -t 1 #{dnsname}`
           raise Resolv::ResolvError.new if $?.exitstatus > 0 or ping.empty?
-          map[dnsname] = ping[/\((.*?)\)/, 1]
+          map[dnsname] = ping[/ \((.*?)\)/, 1]
         end
 
         open('/etc/hosts', 'a') do |hosts|
@@ -86,6 +86,8 @@ namespace :fly do
             hosts.puts "#{address} #{dnsname}"
           end
         end
+
+        break
       rescue Resolv::ResolvError
         sleep 0.1
       end
