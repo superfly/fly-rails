@@ -70,6 +70,7 @@ namespace :fly do
       pids << spawn("avahi-publish -a -R #{ENV['FLY_REGION']}-#{name}.local #{ip}")
     end
 
+    require 'resolv'
     100.times do
       begin
         args[:list].scan(/([-\w]+)=(\d+)/).each do |name, count|
