@@ -72,10 +72,10 @@ namespace :fly do
 
     100.times do
       begin
-      rescue Resolv::ResolvError
         args[:list].scan(/([-\w]+)=(\d+)/).each do |name, count|
           Resolv.getaddress "#{ENV['FLY_REGION']}-#{name}.local"
         end
+      rescue Resolv::ResolvError
         sleep 0.1
       end
     end
