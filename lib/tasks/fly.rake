@@ -59,7 +59,7 @@ namespace :fly do
   end
 
   desc 'Zeroconf/avahi/bonjour discovery'
-  task :avahi_publish, [:formation] => :dbus_deamon do |task, args|
+  task :avahi_publish, [:formation, :ist] => :dbus_deamon do |task, args|
     pids = []
     pids << spawn('avahi-daemon')
     sleep 0.1
@@ -68,6 +68,16 @@ namespace :fly do
     args[:formation].scan(/([-\w]+)=(\d+)/).each do |name, count|
       next if count.to_i == 0
       pids << spawn("avahi-publish -a -R #{ENV['FLY_REGION']}-#{name}.local #{ip}")
+    end
+
+    100.times do
+      begin
+      rescue Resolv::ResolvError
+        args[:list].scan(/([-\w]+)=(\d+)/).each do |name, count|
+          Resolv.getaddress "#{ENV['FLY_REGION']}-#{name}.local"
+        end
+        sleep 0.1
+      end
     end
 
     at_exit do

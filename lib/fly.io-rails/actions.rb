@@ -411,6 +411,9 @@ module Fly
           config[:env]['SERVER_COMMAND'] = entrypoint
           start = Fly::Machines.create_and_start_machine(app, config: config)
           machines[name] = start[:id] 
+
+          config.delete :mounts
+          config.delete :services
         end
       end
 
