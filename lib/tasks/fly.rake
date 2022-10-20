@@ -59,7 +59,7 @@ namespace :fly do
   end
 
   desc 'Zeroconf/avahi/bonjour discovery'
-  task :avahi_publish, [:formation, :ist] => :dbus_deamon do |task, args|
+  task :avahi_publish, [:formation, :list] => :dbus_deamon do |task, args|
     pids = []
     pids << spawn('avahi-daemon')
     sleep 0.1
