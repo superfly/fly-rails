@@ -36,6 +36,7 @@ module Fly
       @node = File.exist? 'node_modules'
       @yarn = File.exist? 'yarn.lock'
       @node_version = @node ? `node --version`.chomp.sub(/^v/, '') : '16.17.0'
+      @yarn_version = @yarn ? `yarn --version`.chomp : 'latest'
       @org = Fly::Machines.org
 
       @set_stage = @nomad ? 'set' : 'set --stage'
