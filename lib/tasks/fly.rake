@@ -76,9 +76,9 @@ namespace :fly do
         map = {}
         args[:list].scan(/([-\w]+)=(\d+)/).each do |name, count|
           dnsname = "#{ENV['FLY_REGION']}-#{name}.local"
-          ping = `ping -q -c 1 -t 1 #{dnsname}`
-          raise Resolv::ResolvError.new if $?.exitstatus > 0 or ping.empty?
-          map[dnsname] = ping[/ \((.*?)\)/, 1]
+          resolve = `avahi-resolve-host-name #{dnsname}`
+          raise Resolv::ResolvError.new if $?.exitstatus > 0 or resolve.empty?
+          map[dnsname] = resolve.split.last
         end
 
         open('/etc/hosts', 'a') do |hosts|
