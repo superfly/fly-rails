@@ -61,7 +61,7 @@ namespace :fly do
   desc 'Zeroconf/avahi/bonjour discovery'
   task :avahi_publish, [:formation, :list] => :dbus_deamon do |task, args|
     pids = []
-    # pids << spawn('avahi-daemon')
+    pids << spawn('avahi-daemon')
     sleep 0.1
 
     ip = IPSocket.getaddress(Socket.gethostname)
