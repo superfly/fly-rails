@@ -59,7 +59,7 @@ namespace :fly do
   end
 
   desc 'nats based service discovery'
-  task :nats_publish, [:formation] => :dbus_deamon do |task, args|
+  task :nats_publish, [:formation] do |task, args|
     if ENV['NATS_SERVER'] == 'localhost'
       pid = spawn('nats-server')
     end
