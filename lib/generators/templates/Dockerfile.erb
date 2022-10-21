@@ -140,10 +140,11 @@ RUN apt-get install -y dirmngr gnupg apt-transport-https ca-certificates curl &&
   @deploy_packages << 'libsqlite3-0' if @sqlite3
   @deploy_packages << 'default-mysql-client' if @mysql
   @deploy_packages << 'imagemagick' if @rmagick
-  @deploy_packages << 'nodejs' if not @node and @boostrap
+  @deploy_packages << 'nodejs' if not @node and @bootstrap
   @deploy_packages << 'fuse' if @litefs
   @deploy_packages << 'ruby-foreman' if @procs.length > 1
   @deploy_packages << 'redis-server' if @redis == :internal
+  @deploy_packages << 'gettext-base' if @nats
   @deploy_packages += %w(avahi-daemon avahi-utils libnss-mdns) if @avahi
 -%>
 ARG DEPLOY_PACKAGES=<%= @deploy_packages.join(' ').inspect %>
@@ -188,6 +189,14 @@ ADD config/litefs.yml /etc/litefs.yml
 
 # Create mount point
 RUN mkdir /data
+
+<% end -%>
+<% if @nats -%>
+# install nats
+RUN mkdir /etc/nats
+COPY --from=nats:latest /nats-server /usr/local/bin/nats-server
+COPY --from=nats:latest /nats-server.conf /etc/nats/nats-server.conf
+
 <% end -%>
 #######################################################################
 <% if @avahi -%>
@@ -198,7 +207,9 @@ RUN sed -i 's/mdns4_minimal/mdns_minimal/' /etc/nsswitch.conf
 <% if @passenger -%>
 
 # configure nginx/passenger
+<% unless @avahi or @nats -%>
 COPY config/nginx.conf /etc/nginx/sites-available/rails.conf
+<% end -%>
 RUN rm /etc/nginx/sites-enabled/default && \
     ln -s /etc/nginx/sites-available/rails.conf /etc/nginx/sites-enabled/ && \
     sed -i 's/user .*;/user root;/' /etc/nginx/nginx.conf && \

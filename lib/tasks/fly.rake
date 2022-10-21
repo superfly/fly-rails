@@ -58,8 +58,28 @@ namespace :fly do
     sh 'dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address'
   end
 
+  desc 'nats based service discovery'
+  task :nats_publish, [:formation] => :dbus_deamon do |task, args|
+    if ENV['NATS_SERVER'] == 'localhost'
+      pid = spawn('nats-server')
+    end
+
+    ip = Socket.ip_address_list.find do |addr|
+      addr.ipv6? and not addr.ipv6_linklocal? and not addr.ipv6_loopback?
+    end
+
+    address = ip.inspect_sockaddr
+
+    open('/etc/hosts', 'a') do |hosts|
+      args[:formation].scan(/([-\w]+)=(\d+)/).each do |name, count|
+        dnsname = "#{ENV['FLY_REGION']}-#{name}.local"
+        hosts.puts "#{address} #{dnsname}"
+      end
+    end
+  end
+
   desc 'Zeroconf/avahi/bonjour discovery'
-  task :avahi_publish, [:formation, :list] => :dbus_deamon do |task, args|
+  task :avahi_publish, [:formation] => :dbus_deamon do |task, args|
     pids = []
     pids << spawn('avahi-daemon')
     sleep 0.1
@@ -74,7 +94,7 @@ namespace :fly do
     100.times do
       begin
         map = {}
-        args[:list].scan(/([-\w]+)=(\d+)/).each do |name, count|
+        args[:formation].scan(/([-\w]+)=(\d+)/).each do |name, count|
           dnsname = "#{ENV['FLY_REGION']}-#{name}.local"
           resolve = `avahi-resolve-host-name #{dnsname}`
           raise Resolv::ResolvError.new if $?.exitstatus > 0 or resolve.empty?

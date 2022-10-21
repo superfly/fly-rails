@@ -48,8 +48,14 @@ namespace :fly do
   <%- if @procs.length > 1 -%>
     formation = args[:formation] || <%= @procs.keys.map {|key| "#{key}=1"}.join(';').inspect %>
     formation.gsub! ';', ','
+    <%- if @passenger and (@avahi or @nats) -%>
+    sh 'envsubst < config/nginx.conf > /etc/nginx/sites-available/rails.conf'
+    <%- end -%>
     <%- if @avahi -%>
     Rake::Task['fly:avahi_publish'].invoke(formation)
+    <%- end -%>
+    <%- if @nats -%>
+    Rake::Task['fly:nats_publish'].invoke(formation)
     <%- end -%>
     Bundler.with_original_env do
       <%- if @avahi -%>

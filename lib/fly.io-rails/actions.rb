@@ -26,6 +26,7 @@ module Fly
       regions = options[:region]&.flatten || []
       @avahi = options[:avahi]
       @litefs = options[:litefs]
+      @nats = options[:nats]
       @nomad = options[:nomad]
       @passenger = options[:passenger]
       @serverless = options[:serverless]
@@ -403,7 +404,7 @@ module Fly
       # start app
       machines = {}
       say_status :fly, "start #{app}"
-      if not toml['processes']
+      if not toml['processes'] or toml['processes'].empty?
         start = Fly::Machines.create_and_start_machine(app, config: config)
         machines['app'] = start[:id] 
       else

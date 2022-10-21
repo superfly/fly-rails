@@ -1,7 +1,7 @@
 app = "<%= @app %>"
 kill_signal = "SIGINT"
 kill_timeout = 5
-<% unless @avahi -%>
+<% unless @avahi or @nats -%>
 processes = []
 <% end -%>
 
@@ -25,7 +25,7 @@ processes = []
 <% else -%>
   DATABASE_URL = "sqlite3:///mnt/volume/production.sqlite3"
 <% end -%>
-<% if @avahi -%>
+<% if @avahi or @nats -%>
 
 [processes]
 app = "bin/rails fly:server[<%= @procs.keys.map {|key| "#{key}=1"}.join(';') %>]"
