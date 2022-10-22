@@ -61,10 +61,18 @@ namespace :fly do
 
   desc 'nats based service discovery'
   task :nats_publish, [:formation] do |task, args|
+    nats_server = ENV['NATS_SERVER']
+
     # start nats server
-    if ENV['NATS_SERVER'] == 'localhost'
+    if nats_server == 'localhost'
       pid = spawn('nats-server')
       at_exit { Process.kill 7, pid }
+    else
+      open('/etc/hosts', 'a') do |file|
+        host = "#{ENV['FLY_REGION']}-nats-server.local
+        file.puts "#{nats_server}\t#{host}"
+        nats_server = host
+      end
     end
 
     # determine hosts we are serving
@@ -86,7 +94,7 @@ namespace :fly do
 
     # share and collect hosts
     require 'nats/client'
-    nats = NATS.connect(ENV['NATS_SERVER'])
+    nats = NATS.connect(nats_server)
 
     nats.subscribe('query_hosts') do |msg|
       msg.respond hosts.to_json

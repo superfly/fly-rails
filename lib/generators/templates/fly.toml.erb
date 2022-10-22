@@ -28,7 +28,7 @@ processes = []
 <% if @avahi or @nats -%>
 
 [processes]
-app = "bin/rails fly:server[<%= @procs.keys.map {|key| "#{key}=1"}.join(';') %>]"
+  app = "bin/rails fly:server[<%= @procs.keys.map {|key| "#{key}=1"}.join(';') %>]"
 <% end -%>
 
 [mounts]

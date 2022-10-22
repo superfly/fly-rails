@@ -409,17 +409,18 @@ module Fly
         machines['app'] = start[:id] 
       else
         config[:env] ||= {}
-        config[:env]['NATS_SERVER'] = 'localhost' if @nats
+        config[:env]['NATS_SERVER'] = 'localhost'
         toml['processes'].each do |name, entrypoint|
           config[:env]['SERVER_COMMAND'] = entrypoint
           start = Fly::Machines.create_and_start_machine(app, config: config)
+          puts start.inspect
           machines[name] = start[:id] 
 
           config.delete :mounts
           config.delete :services
 
-          if @nats and config[:env]['NATS_SERVER'] = 'localhost'
-            config[:env]['NATS_SERVER'] = start[:id] 
+          if config[:env]['NATS_SERVER'] = 'localhost'
+            config[:env]['NATS_SERVER'] = start[:private_ip] 
           end
         end
       end
