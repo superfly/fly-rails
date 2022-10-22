@@ -100,19 +100,23 @@ namespace :fly do
       msg.respond hosts.to_json
     end
 
-    nats.subscribe('advertise_hosts') do |msg|
+    update_hosts = Proc do |msg|
       addresses = JSON.parse(msg.data)
 
-      open('/etc/hosts', 'a') do |file|
+      open('/etc/hosts', 'r+') do |file|
         file.flock(File::LOCK_EX)
+        contents = file.read
 
         addresses.each do |dnsname, address|
-          file.puts "#{address}\t#{dnsname}"
+          file.puts "#{address}\t#{dnsname}" unless contents.include? dnsname
         end
       end
 
       needs -= hosts.keys
     end
+
+    nats.request('query_hosts', &update_hosts)
+    nats.subscribe('advertise_hosts', &update_hosts)
 
     nats.publish('advertise_hosts', hosts.to_json)
 
