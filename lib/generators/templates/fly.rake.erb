@@ -54,7 +54,7 @@ namespace :fly do
     Rake::Task['fly:avahi_publish'].invoke(formation)
     <%- end -%>
     <%- if @nats -%>
-    Rake::Task['fly:nats_publish'].invoke(formation)
+    Rake::Task['fly:nats_publish'].invoke(formation) if ENV['NATS_SERVER']
     <%- end -%>
     Bundler.with_original_env do
       <%- if @avahi or @nats -%>

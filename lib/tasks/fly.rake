@@ -86,7 +86,7 @@ namespace :fly do
 
     # share and collect hosts
     require 'nats/client'
-    nats = NATS.connect('NATS_SERVER')
+    nats = NATS.connect(ENV['NATS_SERVER'])
 
     nats.subscribe('query_hosts') do |msg|
       msg.respond hosts.to_json
