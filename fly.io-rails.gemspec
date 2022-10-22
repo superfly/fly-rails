@@ -21,4 +21,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "fly-ruby"
   spec.add_dependency "toml"
+  spec.add_dependency "nats-pure"
 end

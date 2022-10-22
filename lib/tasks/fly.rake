@@ -2,6 +2,7 @@ require 'fly.io-rails/machines'
 require 'fly.io-rails/hcl'
 require 'fly.io-rails/actions'
 require 'toml'
+require 'json'
 
 namespace :fly do
   desc 'Deploy fly application'
@@ -62,6 +63,7 @@ namespace :fly do
   task :nats_publish, [:formation] do |task, args|
     if ENV['NATS_SERVER'] == 'localhost'
       pid = spawn('nats-server')
+      at_exit { Process.kill 7, pid }
     end
 
     ip = Socket.ip_address_list.find do |addr|
@@ -69,13 +71,36 @@ namespace :fly do
     end
 
     address = ip.inspect_sockaddr
+    hosts = {}
+    args[:formation].scan(/([-\w]+)=(\d+)/).each do |name, count|
+      dnsname = "#{ENV['FLY_REGION']}-#{name}.local"
+      hosts[dnsname] = address
+    end
 
-    open('/etc/hosts', 'a') do |hosts|
-      args[:formation].scan(/([-\w]+)=(\d+)/).each do |name, count|
-        dnsname = "#{ENV['FLY_REGION']}-#{name}.local"
-        hosts.puts "#{address} #{dnsname}"
+    open('/etc/hosts', 'a') do |file|
+      hosts.each do |dnsname, address|
+        file.puts "#{address}\t#{dnsname}"
       end
     end
+
+    require 'nats/client'
+    nats = nats.connect('NATS_SERVER')
+
+    nats.subscribe('query_hosts') do |msg|
+      msg.respond hosts.to_json
+    end
+
+    nats.subscribe('advertise_hosts') do |msg|
+      open('/etc/hosts', 'a') do |file|
+        JSON.parse(msg.data).each do |dnsname, address|
+          file.puts "#{address}\t#{dnsname}"
+        end
+      end
+    end
+
+    nats.publish('advertise_hosts', hosts.to_json)
+
+    at_exit { nats.close }
   end
 
   desc 'Zeroconf/avahi/bonjour discovery'

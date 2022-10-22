@@ -23,13 +23,17 @@ server {
    location /cable {
       <%- if @passenger and (@avahi or @nats) -%>
         proxy_pass http://${FLY_REGION}-anycable-go.local:8082/cable;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $${_0_}http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $${_0_}host;
       <%- else -%>
         proxy_pass http://localhost:8082/cable;
-      <%- end -%>
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "Upgrade";
         proxy_set_header Host $host;
+      <%- end -%>
     }
 
 <% elsif @cable -%>

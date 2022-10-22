@@ -18,7 +18,7 @@ namespace :fly do
   <%- end -%>
 
 <% end -%>
-<% if @avahi -%>
+<% if @avahi or @nats -%>
   task :env do
 <% if @redis -%>
     ENV['REDIS_URL'] = "redis://#{ENV['FLY_REGION']}-redis.local:6379/1"
@@ -46,11 +46,10 @@ namespace :fly do
     end
   end %>
   <%- if @procs.length > 1 -%>
-    formation = args[:formation] || <%= @procs.keys.map {|key| "#{key}=1"}.join(';').inspect %>
-    formation.gsub! ';', ','
     <%- if @passenger and (@avahi or @nats) -%>
     sh 'envsubst < config/nginx.conf > /etc/nginx/sites-available/rails.conf'
     <%- end -%>
+    formation = args[:formation].gsub!(';', ',')
     <%- if @avahi -%>
     Rake::Task['fly:avahi_publish'].invoke(formation)
     <%- end -%>
@@ -58,7 +57,7 @@ namespace :fly do
     Rake::Task['fly:nats_publish'].invoke(formation)
     <%- end -%>
     Bundler.with_original_env do
-      <%- if @avahi -%>
+      <%- if @avahi or @nats -%>
       Rake::Task['fly:env'].invoke
       <%- end -%>
       sh "foreman start --procfile=Procfile.fly --formation=#{formation}"
