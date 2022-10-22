@@ -413,7 +413,6 @@ module Fly
         toml['processes'].each do |name, entrypoint|
           config[:env]['SERVER_COMMAND'] = entrypoint
           start = Fly::Machines.create_and_start_machine(app, config: config)
-          puts start.inspect
           machines[name] = start[:id] 
 
           config.delete :mounts

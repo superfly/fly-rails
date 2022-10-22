@@ -69,7 +69,7 @@ namespace :fly do
       at_exit { Process.kill 7, pid }
     else
       open('/etc/hosts', 'a') do |file|
-        host = "#{ENV['FLY_REGION']}-nats-server.local
+        host = "#{ENV['FLY_REGION']}-nats-server.local"
         file.puts "#{nats_server}\t#{host}"
         nats_server = host
       end
