@@ -101,12 +101,12 @@ namespace :fly do
     end
 
     nats.subscribe('advertise_hosts') do |msg|
-      hosts = JSON.parse(msg.data)
+      addresses = JSON.parse(msg.data)
 
       open('/etc/hosts', 'a') do |file|
         file.flock(File::LOCK_EX)
 
-        hosts.each do |dnsname, address|
+        addresses.each do |dnsname, address|
           file.puts "#{address}\t#{dnsname}"
         end
       end
