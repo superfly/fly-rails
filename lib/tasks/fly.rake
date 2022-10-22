@@ -61,46 +61,60 @@ namespace :fly do
 
   desc 'nats based service discovery'
   task :nats_publish, [:formation] do |task, args|
+    # start nats server
     if ENV['NATS_SERVER'] == 'localhost'
       pid = spawn('nats-server')
       at_exit { Process.kill 7, pid }
     end
 
+    # determine hosts we are serving
     ip = Socket.ip_address_list.find do |addr|
       addr.ipv6? and not addr.ipv6_linklocal? and not addr.ipv6_loopback?
     end
 
     address = ip.inspect_sockaddr
     hosts = {}
+    needs = []
     args[:formation].scan(/([-\w]+)=(\d+)/).each do |name, count|
       dnsname = "#{ENV['FLY_REGION']}-#{name}.local"
-      hosts[dnsname] = address
-    end
-
-    open('/etc/hosts', 'a') do |file|
-      hosts.each do |dnsname, address|
-        file.puts "#{address}\t#{dnsname}"
+      if count.to_i == 0
+        needs << dnsname
+      else
+        hosts[dnsname] = address
       end
     end
 
+    # share and collect hosts
     require 'nats/client'
-    nats = nats.connect('NATS_SERVER')
+    nats = NATS.connect('NATS_SERVER')
 
     nats.subscribe('query_hosts') do |msg|
       msg.respond hosts.to_json
     end
 
     nats.subscribe('advertise_hosts') do |msg|
+      hosts = JSON.parse(msg.data)
+
       open('/etc/hosts', 'a') do |file|
-        JSON.parse(msg.data).each do |dnsname, address|
+        file.flock(File::LOCK_EX)
+
+        hosts.each do |dnsname, address|
           file.puts "#{address}\t#{dnsname}"
         end
       end
+
+      needs -= hosts.keys
     end
 
     nats.publish('advertise_hosts', hosts.to_json)
 
     at_exit { nats.close }
+
+    # wait for dependencies to be available
+    600.times do
+      break if needs.empty?
+      sleep 0.1
+    end
   end
 
   desc 'Zeroconf/avahi/bonjour discovery'
