@@ -22,7 +22,7 @@ namespace :fly do
   task :env do
 <% if @redis -%>
     if ENV['NATS_SERVER']
-      redis_host = IPSocket.getaddress("#{ENV['FLY_REGION']}-redis.local")
+      redis_host = "#{ENV['FLY_REGION']}-redis.local"
     else
       redis_host = 'localhost'
     end

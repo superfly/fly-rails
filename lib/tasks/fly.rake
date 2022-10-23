@@ -75,12 +75,11 @@ namespace :fly do
       end
     end
 
-    # determine hosts we are serving
-    ip = Socket.ip_address_list.find do |addr|
-      addr.ipv6? and not addr.ipv6_linklocal? and not addr.ipv6_loopback?
-    end
+    # determine our local 6pn network address
+    address = IPSocket.getaddress('fly-local-6pn')
 
-    address = ip.inspect_sockaddr
+    # Determine which applications we need addresses for and
+    # which applications we can provide addresses for.
     hosts = {}
     needs = []
     args[:formation].scan(/([-\w]+)=(\d+)/).each do |name, count|
