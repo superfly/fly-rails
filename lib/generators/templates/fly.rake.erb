@@ -27,7 +27,7 @@ namespace :fly do
       redis_host = 'localhost'
     end
 
-    ENV['REDIS_URL'] = "redis://[#{redis_host}]:6379/1"
+    ENV['REDIS_URL'] = "redis://#{redis_host}:6379/1"
 <% end -%>
 <% if @anycable -%>
     ENV['ANYCABLE_GO_RPC_HOST'] = "#{ENV['FLY_REGION']}-anycable-rpc.local:50051"
