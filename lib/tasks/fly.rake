@@ -85,11 +85,8 @@ namespace :fly do
     needs = []
     args[:formation].scan(/([-\w]+)=(\d+)/).each do |name, count|
       dnsname = "#{ENV['FLY_REGION']}-#{name}.local"
-      if count.to_i == 0
-        needs << dnsname
-      else
-        hosts[dnsname] = address
-      end
+      needs << dnsname
+      hosts[dnsname] = address unless count.to_i == 0
     end
 
     # share and collect hosts

@@ -21,7 +21,12 @@ namespace :fly do
 <% if @avahi or @nats -%>
   task :env do
 <% if @redis -%>
-    redis_host = IPSocket.getaddress("#{ENV['FLY_REGION']}-redis.local")
+    if ENV['NATS_SERVER']
+      redis_host = IPSocket.getaddress("#{ENV['FLY_REGION']}-redis.local")
+    else
+      redis_host = 'localhost'
+    end
+
     ENV['REDIS_URL'] = "redis://[#{redis_host}]:6379/1"
 <% end -%>
 <% if @anycable -%>
