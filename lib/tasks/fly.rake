@@ -100,7 +100,7 @@ namespace :fly do
       msg.respond hosts.to_json
     end
 
-    update_hosts = Proc do |msg|
+    update_hosts = Proc.new do |msg|
       addresses = JSON.parse(msg.data)
 
       open('/etc/hosts', 'r+') do |file|
