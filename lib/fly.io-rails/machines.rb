@@ -174,6 +174,7 @@ module Fly
       host ||= "http://#{fly_api_hostname}"
       uri = URI.join(host, path)
       http = Net::HTTP.new(uri.host, uri.port)
+      http.set_debug_output $stderr if ENV['TRACE'] 
       http.use_ssl = true if uri.instance_of? URI::HTTPS
 
       request = make_request.call(uri.request_uri)
