@@ -197,17 +197,19 @@ module Fly
     end
 
     def create_volume(app, region, size)
-      volume = "#{app.gsub('-', '_')}_volume"
-      volumes = JSON.parse(`flyctl volumes list --json`).
-        map {|volume| [volume['Name'], volume['Region']]}
+      name = "#{app.gsub('-', '_')}_volume"
+      volumes = JSON.parse(`flyctl volumes list --json`)
 
-      unless volumes.include? [volume, region]
-        cmd = "flyctl volumes create #{volume} --app #{app} --region #{region} --size #{size}"
+      volume = volumes.find {|volume| volume['Name'] == name and volume['Region'] == region}
+      unless volume
+        cmd = "flyctl volumes create #{name} --app #{app} --region #{region} --size #{size}"
         say_status :run, cmd
         system cmd
+        volumes = JSON.parse(`flyctl volumes list --json`)
+        volume = volumes.find {|volume| volume['Name'] == name and volume['Region'] == region}
       end
 
-      volume
+      volume && volume['id']
     end
 
     def create_postgres(app, org, region, vm_size, volume_size, cluster_size)
@@ -396,7 +398,14 @@ module Fly
       config[:services] = toml['services'] if toml['services']
       if toml['mounts']
         mounts = toml['mounts']
-        config[:mounts] = [ { volume: mounts['source'], path: mounts['destination'] } ]
+        volume = JSON.parse(`flyctl volumes list --json`).
+          find {|volume| volume['Name'] == mounts['source'] and volume['Region'] == @region}
+        if volume
+          config[:mounts] = [ { volume: volume['id'], path: mounts['destination'] } ]
+        else
+          STDERR.puts "volume #{mounts['source']} not found in region #{@region}"
+          exit 1
+        end
       end
 
       # start app
@@ -411,6 +420,12 @@ module Fly
         toml['processes'].each do |name, entrypoint|
           config[:env]['SERVER_COMMAND'] = entrypoint
           start = Fly::Machines.create_and_start_machine(app, config: config)
+
+          if start['error']
+            STDERR.puts start.inspect
+            exit 1
+          end
+
           machines[name] = start[:id] 
 
           config.delete :mounts
