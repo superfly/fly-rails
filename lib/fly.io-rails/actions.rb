@@ -237,8 +237,8 @@ module Fly
       output[%r{redis://\S+}]
     end
 
-    def release(app, config)
-      start = Fly::Machines.create_and_start_machine(app, config: config)
+    def release(app, options)
+      start = Fly::Machines.create_and_start_machine(app, options)
       machine = start[:id]
 
       if not machine
@@ -322,9 +322,6 @@ module Fly
 
       # default config
       config = {
-        region: @region,
-        app: app,
-        name: "#{app}-machine",
         image: image,
         guest: {
           cpus: @config.machine.cpus,
@@ -353,7 +350,7 @@ module Fly
 
         # perform release
         say_status :fly, release_config[:env]['SERVER_COMMAND']
-        event, exit_code, machine = release(app, release_config)
+        event, exit_code, machine = release(app, region: @region, config: release_config)
 
         if exit_code != 0
           STDERR.puts 'Error performing release'
@@ -410,19 +407,22 @@ module Fly
 
       # start app
       machines = {}
+      options = {region: @region, config: config}
       say_status :fly, "start #{app}"
       if not toml['processes'] or toml['processes'].empty?
-        start = Fly::Machines.create_and_start_machine(app, config: config)
+        options[:name] = "#{app}-machine",
+        start = Fly::Machines.create_and_start_machine(app, options)
         machines['app'] = start[:id] 
       else
         config[:env] ||= {}
         config[:env]['NATS_SERVER'] = 'localhost'
         toml['processes'].each do |name, entrypoint|
+          options[:name] = "#{app}-machine-#{name}"
           config[:env]['SERVER_COMMAND'] = entrypoint
-          start = Fly::Machines.create_and_start_machine(app, config: config)
+          start = Fly::Machines.create_and_start_machine(app, options)
 
           if start['error']
-            STDERR.puts start.inspect
+            STDERR.puts "ERROR: #{start.error}"
             exit 1
           end
 
@@ -499,7 +499,7 @@ module Fly
       # perform release, if necessary
       if (IO.read('lib/tasks/fly.rake') rescue '') =~ /^\s*task[ \t]*+:?release"?[ \t]*\S/
         say_status :fly, config[:env]['SERVER_COMMAND']
-        event, exit_code, machine = release(app, config)
+        event, exit_code, machine = release(app, region: @region, config: config)
       else
         exit_code = 0
       end
