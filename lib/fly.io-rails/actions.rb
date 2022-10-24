@@ -173,8 +173,6 @@ module Fly
         system "flyctl secrets #{@set_stage} RAILS_MASTER_KEY=#{IO.read(credentials).chomp}"
         puts
       end
-  
-      ENV['FLY_API_TOKEN'] = `flyctl auth token`
     end
 
     def generate_patches
