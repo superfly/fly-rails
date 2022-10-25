@@ -365,13 +365,15 @@ module Fly
 
       # stop previous instances - list will fail on first run
       stdout, stderr, status = Open3.capture3('fly machines list --json')
+      existing_machines = []
       unless stdout.empty?
-	JSON.parse(stdout).each do |list|
-	  next if list['id'] == machine or list['state'] == 'destroyed'
-	  cmd = "fly machines remove --force #{list['id']}"
-	  say_status :run, cmd
-	  system cmd
-	end
+        JSON.parse(stdout).each do |list|
+          existing_machines << list['name']
+          next if list['id'] == machine or list['state'] == 'destroyed'
+          cmd = "fly machines remove --force #{list['id']}"
+          say_status :run, cmd
+          system cmd
+        end
       end
 
       # configure sqlite3 (can be overridden by fly.toml)
@@ -410,7 +412,10 @@ module Fly
       options = {region: @region, config: config}
       say_status :fly, "start #{app}"
       if not toml['processes'] or toml['processes'].empty?
-        options[:name] = "#{app}-machine",
+        options[:name] = "#{app}-machine"
+        taken = existing_machines.find {|name| name.start_with? options[:name]}
+        options[:name] = taken == options[:name] ? "#{taken}-2" : taken.next if taken
+
         start = Fly::Machines.create_and_start_machine(app, options)
         machines['app'] = start[:id] 
       else
@@ -418,11 +423,14 @@ module Fly
         config[:env]['NATS_SERVER'] = 'localhost'
         toml['processes'].each do |name, entrypoint|
           options[:name] = "#{app}-machine-#{name}"
+          taken = existing_machines.find {|name| name.start_with? options[:name]}
+          options[:name] = taken == options[:name] ? "#{taken}-2" : taken.next if taken
+
           config[:env]['SERVER_COMMAND'] = entrypoint
           start = Fly::Machines.create_and_start_machine(app, options)
 
           if start['error']
-            STDERR.puts "ERROR: #{start.error}"
+            STDERR.puts "ERROR: #{start['error']}"
             exit 1
           end
 
