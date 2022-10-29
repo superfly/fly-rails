@@ -19,6 +19,10 @@ module Fly
       @anycable = gemfile.include? 'anycable'
       @rmagick = gemfile.include? 'rmagick'
       @bootstrap = gemfile.include? 'bootstrap'
+      @puppeteer = gemfile.include? 'puppeteer'
+
+      package_json = IO.read('package.json') rescue ''
+      @puppeteer ||= package_json.include? 'puppeteer'
 
       @cable = ! Dir['app/channels/*.rb'].empty?
 
