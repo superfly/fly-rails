@@ -17,7 +17,6 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir["{app,lib}/**/*", "LICENSE", "Rakefile", "README.md"]
   spec.bindir = "exe"
-  spec.executables << "flyctl"
 
   spec.add_dependency "fly-ruby"
   spec.add_dependency "toml"
