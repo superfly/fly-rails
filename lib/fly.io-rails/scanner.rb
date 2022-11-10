@@ -18,6 +18,7 @@ module Fly
       @sidekiq = gemfile.include? 'sidekiq'
       @anycable = gemfile.include? 'anycable'
       @rmagick = gemfile.include? 'rmagick'
+      @image_processing = gemfile.include? 'image_processing'
       @bootstrap = gemfile.include? 'bootstrap'
       @puppeteer = gemfile.include? 'puppeteer'
 

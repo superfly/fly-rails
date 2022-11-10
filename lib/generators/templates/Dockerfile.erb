@@ -154,6 +154,7 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
   @deploy_packages << 'default-mysql-client' if @mysql
   @deploy_packages << 'google-chrome-stable' if @puppeteer
   @deploy_packages << 'imagemagick' if @rmagick
+  @deploy_packages << 'libvips42' if @image_processing
   @deploy_packages << 'nodejs' if not @node and @bootstrap
   @deploy_packages << 'fuse' if @litefs
   @deploy_packages << 'ruby-foreman' if @procs.length > 1
