@@ -22,7 +22,7 @@ module Fly
       @destination_stack = [Dir.pwd]
 
       # extract options
-      self.app = app
+      app ? self.app = app : app = self.app
       regions = options[:region]&.flatten || []
       @avahi = options[:avahi]
       @litefs = options[:litefs]
