@@ -16,7 +16,7 @@ module Fly
     include Fly::Scanner
     attr_accessor :options
 
-    def initialize(app, options={})
+    def initialize(app=nil, options={})
       # placate thor
       @options = {}
       @destination_stack = [Dir.pwd]

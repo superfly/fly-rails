@@ -1,8 +1,24 @@
 module Fly
   module DSL
     class Base
+      @@blocks = {}
+
       def initialize
         @value = {}
+      end
+
+      def self.block name, kind
+        @@blocks[name] = kind
+
+        define_method name do |&block| 
+          @config[name] ||= kind.new
+          @config[name].instance_eval(&block) if block
+          @config[name]
+        end
+      end
+      
+      def self.blocks
+        @@blocks
       end
 
       def self.option name, default=nil
@@ -47,33 +63,23 @@ module Fly
       option :size, 3
     end
 
+    class Deploy < Base
+      option :swap_mb, 0
+    end
+
     #############################################################
 
-    class Config
-      @@blocks = {}
+    class Config < Base
 
       def initialize
         @config = {}
-      end
-
-      def self.block name, kind
-        @@blocks[name] = kind
-
-        define_method name do |&block| 
-          @config[name] ||= kind.new
-          @config[name].instance_eval(&block) if block
-          @config[name]
-        end
-      end
-
-      def self.blocks
-        @@blocks
       end
 
       block :machine, Machine
       block :postgres, Postgres
       block :redis, Redis
       block :sqlite3, Sqlite3
+      block :deploy, Deploy
     end
   end
 end
