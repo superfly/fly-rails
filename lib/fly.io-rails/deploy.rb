@@ -18,7 +18,8 @@ def check_git
 
     system `git clone --depth 1 #{spec.git} /srv/fly.io-rails`
     exit 1 unless Dir.exist? '/srv/fly.io-rails/lib'
-    exec "ruby -r /srv/fly.io-rails/deploy -e #{caller_locations(1,1)[0].label}"
+    ENV['RUBYLIB'] = '/srv/fly.io-rails/lib'
+    exec "ruby -r fly.io-rails/deploy -e #{caller_locations(1,1)[0].label}"
   end
 end
 
