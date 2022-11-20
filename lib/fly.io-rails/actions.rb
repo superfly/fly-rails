@@ -95,7 +95,7 @@ module Fly
       @procs = {web: 'bin/rails server'}
       @procs[:web] = "nginx -g 'daemon off;'" if @passenger
       @procs[:worker] = 'bundle exec sidekiq' if @sidekiq
-      @procs[:redis] = 'redis-server /etc/redis/redis.conf' if @redis
+      @procs[:redis] = 'redis-server /etc/redis/redis.conf' if @redis == :internal
       @procs.merge! 'anycable-rpc': 'bundle exec anycable --rpc-host=0.0.0.0:50051',
         'anycable-go': 'env ANYCABLE_RPC_HOST=$ANYCABLE_GO_RPC_HOST /usr/local/bin/anycable-go --port=8082 --host 0.0.0.0' if @anycable
     end

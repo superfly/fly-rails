@@ -1,36 +1,9 @@
-# syntax = docker/dockerfile:experimental
+# syntax = docker/dockerfile:1
 
-# Dockerfile used to build a deployable image for a Rails application.
-# Adjust as required.
-#
-# Common adjustments you may need to make over time:
-#  * Modify version numbers for Ruby, Bundler, and other products.
-#  * Add library packages needed at build time for your gems, node modules.
-#  * Add deployment packages needed by your application
-#  * Add (often fake) secrets needed to compile your assets
-
-#######################################################################
-
-# Learn more about the chosen Ruby stack, Fullstaq Ruby, here:
-#   https://github.com/evilmartians/fullstaq-ruby-docker.
-#
-# We recommend using the highest patch level for better security and
-# performance.
-
-ARG RUBY_VERSION=<%= @ruby_version %>
-ARG VARIANT=jemalloc-slim
-FROM quay.io/evl.ms/fullstaq-ruby:${RUBY_VERSION}-${VARIANT} as base
-
+FROM quay.io/evl.ms/fullstaq-ruby:<%= @ruby_version %>-jemalloc-slim as base
 LABEL fly_launch_runtime="rails"
 
-<% if @node -%>
-ARG NODE_VERSION=<%= @node_version %>
-ARG YARN_VERSION=<%= @yarn_version %>
-<% end -%>
-ARG BUNDLER_VERSION=<%= @bundler_version %>
-
-ARG RAILS_ENV=production
-ENV RAILS_ENV=${RAILS_ENV}
+ENV RAILS_ENV=production
 <% if @anycable or not @passenger -%>
 ENV RAILS_LOG_TO_STDOUT true
 <% end -%>
@@ -45,19 +18,18 @@ ENV BUNDLE_WITHOUT ${BUNDLE_WITHOUT}
 
 RUN mkdir /app
 WORKDIR /app
-RUN mkdir -p tmp/pids
 
 <% if @node -%>
 RUN curl https://get.volta.sh | bash
 ENV VOLTA_HOME /root/.volta
 ENV PATH $VOLTA_HOME/bin:/usr/local/bin:$PATH
-RUN volta install node@${NODE_VERSION} yarn@${YARN_VERSION} && \
+RUN volta install node@<%= @node_version %> yarn@<%= @yarn_version %> && \
     gem update --system --no-document && \
-    gem install -N bundler -v ${BUNDLER_VERSION}
+    gem install --no-document bundler --version <%= @bundler_version %>
 
 <% else -%>
 RUN gem update --system --no-document && \
-    gem install -N bundler -v ${BUNDLER_VERSION}
+    gem install --no-document bundler --version <%= @bundler_version %>
 
 <% end -%>
 #######################################################################
@@ -89,7 +61,11 @@ RUN --mount=type=cache,id=dev-apt-cache,sharing=locked,target=/var/cache/apt \
 FROM build_deps as gems
 
 COPY Gemfile* ./
-RUN bundle install &&  rm -rf vendor/bundle/ruby/*/cache
+RUN bundle install && \
+<% if @redis and not @gemfile.include? 'redis' -%>
+    bundle add redis && \
+<% end -%>
+    rm -rf vendor/bundle/ruby/*/cache
 
 <% if @node -%>
 #######################################################################
@@ -246,6 +222,9 @@ COPY config/hook_detached_process /etc/nginx/
 
 # Deploy your application
 COPY . .
+<% if @redis and not @gemfile.include? 'redis' -%>
+COPY --from=gems /app/Gemfile /app/Gemfile
+<% end -%>
 
 # Adjust binstubs to run on Linux and set current working directory
 RUN chmod +x /app/bin/* && \
