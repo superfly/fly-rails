@@ -20,13 +20,13 @@ namespace :fly do
     action = Fly::Actions.new(app)
     action.generate_toml if @app
     action.generate_fly_config unless File.exist? 'config/fly.rb'
-    action.generate_dockerfile unless File.exist? 'Dockerfile'
-    action.generate_dockerignore unless File.exist? '.dockerignore'
+    action.generate_dockerfile
+    action.generate_dockerignore
     action.generate_raketask unless File.exist? 'lib/tasks/fly.rake'
     action.generate_procfile unless File.exist? 'Procfile.fly'
 
     # build and push an image
-    out = FlyIoRails::Utils.tee 'fly deploy --build-only --push'
+    out = FlyIoRails::Utils.tee "flyctl deploy --build-only --push --dockerfile #{action.dockerfile} --ignorefile #{action.ignorefile}"
     image = out[/image:\s+(.*)/, 1]&.strip
 
     exit 1 unless image

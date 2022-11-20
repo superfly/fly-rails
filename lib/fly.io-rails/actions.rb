@@ -14,7 +14,7 @@ module Fly
     include Thor::Base
     include Thor::Shell
     include Fly::Scanner
-    attr_accessor :options
+    attr_accessor :options, :dockerfile, :ignorefile
 
     def initialize(app=nil, options={})
       # placate thor
@@ -30,6 +30,7 @@ module Fly
       @nomad = options[:nomad]
       @passenger = options[:passenger]
       @serverless = options[:serverless]
+      @eject = options[:eject]
 
       # prepare template variables
       @ruby_version = RUBY_VERSION
@@ -126,11 +127,31 @@ module Fly
     end
 
     def generate_dockerfile
-      app_template 'Dockerfile.erb', 'Dockerfile'
+      if @eject or File.exist? 'Dockerfile'
+        @dockerfile = 'Dockerfile'
+      else
+        tmpfile = Tempfile.new('Dockerfile')
+        @dockerfile = tmpfile.path
+        tmpfile.unlink
+        at_exit { File.unlink @dockerfile }
+      end
+
+      app_template 'Dockerfile.erb', @dockerfile
     end
 
     def generate_dockerignore
-      app_template 'dockerignore.erb', '.dockerignore'
+      if @eject or File.exist? '.dockerignore'
+        @ignorefile = '.dockerignore'
+      elsif File.exist? '.gitignore'
+        @ignorefile = '.gitignore'
+      else
+        tmpfile = Tempfile.new('Dockerignore')
+        @ignoreile = tmpfile.path
+        tmpfile.unlink
+        at_exit { Filee.unlink @ignorefile }
+      end
+
+      app_template 'dockerignore.erb', @ignorefile unless File.exist? @ignorefile
     end
 
     def generate_nginx_conf

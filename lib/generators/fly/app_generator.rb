@@ -20,6 +20,11 @@ class AppGenerator < Rails::Generators::Base
   def generate_app
     source_paths.push File.expand_path('../templates', __dir__)
 
+    # the plan is to make eject an option, default to false, but until
+    # that is ready, have generate fly:app always eject
+    options = options.to_h.dup
+    options[:eject] = true
+
     create_app(**options.symbolize_keys)
 
     action = Fly::Actions.new(@app, options)
