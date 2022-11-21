@@ -1,6 +1,10 @@
+require 'rake'
+
 module Fly
   module DSL
     class Base
+      include Rake::DSL
+
       @@blocks = {}
 
       def initialize

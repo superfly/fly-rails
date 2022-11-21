@@ -45,7 +45,7 @@ namespace :fly do
     deps << 'db:migrate' if @sqlite3
     deps = deps.first if deps.length == 1
 
-    if @procs.length > 1 ? ':server, [:formation]' : ':server'
+    if @procs.length > 1
       "task :server, [:formation] => #{deps.inspect} do |task, args|"
     else
       "task :server => #{deps.inspect} do"

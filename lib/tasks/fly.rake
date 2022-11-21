@@ -4,6 +4,12 @@ require 'fly.io-rails/actions'
 require 'toml'
 require 'json'
 
+config = File.expand_path('config/fly.rb', Rails.application.root)
+if File.exist? config
+  @config = Fly::DSL::Config.new
+  @config.instance_eval IO.read(config), config
+end
+
 namespace :fly do
   desc 'Deploy fly application'
   task :deploy do
