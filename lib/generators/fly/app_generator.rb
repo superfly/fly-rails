@@ -23,7 +23,7 @@ class AppGenerator < Rails::Generators::Base
     # the plan is to make eject an option, default to false, but until
     # that is ready, have generate fly:app always eject
     options = options.to_h.dup
-    options[:eject] = true
+    options[:eject] = options[:nomad]
 
     create_app(**options.symbolize_keys)
 
@@ -31,13 +31,17 @@ class AppGenerator < Rails::Generators::Base
 
     action.generate_toml
     action.generate_fly_config unless File.exist? 'config/fly.rb'
-    action.generate_dockerfile unless File.exist? 'Dockerfile'
-    action.generate_dockerignore unless File.exist? '.dockerignore'
-    action.generate_nginx_conf unless File.exist? 'config/nginx.conf'
-    action.generate_raketask unless File.exist? 'lib/tasks/fly.rake'
-    action.generate_procfile unless File.exist? 'Procfile.rake'
-    action.generate_litefs if options[:litefs] and not File.exist? 'config/litefs'
-    action.generate_patches
+
+    if options[:eject]
+      action.generate_dockerfile unless File.exist? 'Dockerfile'
+      action.generate_dockerignore unless File.exist? '.dockerignore'
+      action.generate_nginx_conf unless File.exist? 'config/nginx.conf'
+      action.generate_raketask unless File.exist? 'lib/tasks/fly.rake'
+      action.generate_procfile unless File.exist? 'Procfile.rake'
+      action.generate_litefs if options[:litefs] and not File.exist? 'config/litefs'
+      action.generate_patches
+    end
+
     action.generate_ipv4
     action.generate_ipv6
 

@@ -1,4 +1,5 @@
 app = "<%= @app %>"
+<% if @nomad -%>
 kill_signal = "SIGINT"
 kill_timeout = 5
 <% unless @avahi or @nats -%>
@@ -77,3 +78,4 @@ processes = []
 [[statics]]
   guest_path = "/app/public"
   url_prefix = "/"
+<% end -%>
