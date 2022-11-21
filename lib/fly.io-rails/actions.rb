@@ -136,7 +136,9 @@ module Fly
         at_exit { File.unlink @dockerfile }
       end
 
-      app_template 'Dockerfile.erb', @dockerfile
+      if @eject or not File.exist? @dockerfile
+        app_template 'Dockerfile.erb', @dockerfile
+      end
     end
 
     def generate_dockerignore
@@ -151,7 +153,9 @@ module Fly
         at_exit { Filee.unlink @ignorefile }
       end
 
-      app_template 'dockerignore.erb', @ignorefile unless File.exist? @ignorefile
+      if @eject or not File.exist? @ignorefile
+        app_template 'dockerignore.erb', @ignorefile
+      end
     end
 
     def generate_nginx_conf

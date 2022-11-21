@@ -63,7 +63,12 @@ FROM build_deps as gems
 COPY Gemfile* ./
 RUN bundle install && \
 <% if @redis and not @gemfile.include? 'redis' -%>
+<% @bundle_add = true -%>
     bundle add redis && \
+<% end -%>
+<% if @postgresql and not @gemfile.include? 'pg' -%>
+<% @bundle_add = true -%>
+    bundle add pg && \
 <% end -%>
     rm -rf vendor/bundle/ruby/*/cache
 
@@ -222,8 +227,8 @@ COPY config/hook_detached_process /etc/nginx/
 
 # Deploy your application
 COPY . .
-<% if @redis and not @gemfile.include? 'redis' -%>
-COPY --from=gems /app/Gemfile /app/Gemfile
+<% if @bundle_add -%>
+COPY --from=gems /app/Gemfile* ./
 <% end -%>
 
 # Adjust binstubs to run on Linux and set current working directory
