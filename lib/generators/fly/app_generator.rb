@@ -45,7 +45,7 @@ class AppGenerator < Rails::Generators::Base
     action.generate_ipv4
     action.generate_ipv6
 
-    action.launch(@app)
+    action.launch(action.app)
   end
 end
 end
