@@ -1,4 +1,8 @@
-require 'pty'
+begin
+  require 'pty'
+rescue LoadError
+  # Presumably Windows
+end
 
 module FlyIoRails
   module Utils
@@ -11,18 +15,28 @@ module FlyIoRails
     def self.tee cmd
       data = []
 
-      begin
-        PTY.spawn( cmd ) do |stdin, stdout, pid|
-          begin
-            # Do stuff with the output here. Just printing to show it works
-            stdin.each do |line| 
-              print line
-              data << line
-            end
-          rescue Errno::EIO
+      if defined? PTY
+	begin
+	  # PTY supports ANSI cursor control and colors
+	  PTY.spawn(cmd) do |read, write, pid|
+	    begin
+	      read.each do |line|
+		print line
+		data << line
+	      end
+	    rescue Errno::EIO
+	    end
+	  end
+	rescue PTY::ChildExited
+	end
+      else
+	# no support for ANSI cursor control and colors
+	Open3.popen2e(cmd) do |stdin, out, thread|
+          out.each do |line|
+            print line
+            data << line
           end
         end
-      rescue PTY::ChildExited
       end
 
       data.join
