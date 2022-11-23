@@ -25,7 +25,26 @@ class AppGenerator < Rails::Generators::Base
     options = options.to_h.dup
     options[:eject] = options[:nomad]
 
-    create_app(**options.symbolize_keys)
+    if File.exist? 'fly.toml'
+      toml = TOML.load_file('fly.toml')
+      options[:name] ||= toml['app']
+      apps = JSON.parse(`flyctl list apps --json`) rescue []
+
+      if toml.keys.length == 1
+        if options[:name] != toml['app']
+          # replace existing fly.toml
+          File.unlink 'fly.toml'
+          create_app(**options.symbolize_keys)
+        elsif not apps.any? {|item| item['ID'] == options[:name]}
+          create_app(**options.symbolize_keys)
+        end
+      elsif options[:name] != toml['app']
+        say_status "fly:app", "Using the name in the existing toml file", :red
+        options[:name] = toml['app']
+      end
+    else
+      create_app(**options.symbolize_keys)
+    end
 
     action = Fly::Actions.new(@app, options)
 
@@ -42,8 +61,9 @@ class AppGenerator < Rails::Generators::Base
       action.generate_patches
     end
 
-    action.generate_ipv4
-    action.generate_ipv6
+    ips = `flyctl ips list`.strip.lines[1..].map(&:split).map(&:first)
+    action.generate_ipv4 unless ips.include? 'v4'
+    action.generate_ipv6 unless ips.include? 'v6'
 
     action.launch(action.app)
   end

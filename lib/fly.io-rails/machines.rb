@@ -21,10 +21,10 @@ module Fly
       @@fly_api_hostname = '_api.internal:4280'
     rescue
       begin
-	Net::HTTP.get URI('http://127.0.0.1:4280')
-	@@fly_api_hostname = '127.0.0.1:4280'
+        Net::HTTP.get URI('http://127.0.0.1:4280')
+        @@fly_api_hostname = '127.0.0.1:4280'
       rescue
-	nil
+        nil
       end
     end
 
@@ -33,14 +33,14 @@ module Fly
       org = 'personal'
 
       if File.exist? 'fly.toml'
-	require 'toml'
-	app = TOML.load_file('fly.toml')['app']
+        require 'toml'
+        app = TOML.load_file('fly.toml')['app']
 
-	apps = JSON.parse(`flyctl list apps --json`) rescue []
+        apps = JSON.parse(`flyctl list apps --json`) rescue []
 
-	apps.each do |info|
-	  org = info['Organization'] if info['ID'] == app
-	end
+        apps.each do |info|
+          org = info['Organization'] if info['ID'] == app
+        end
       end
 
       org

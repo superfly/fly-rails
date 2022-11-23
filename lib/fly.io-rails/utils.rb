@@ -16,22 +16,22 @@ module FlyIoRails
       data = []
 
       if defined? PTY
-	begin
-	  # PTY supports ANSI cursor control and colors
-	  PTY.spawn(cmd) do |read, write, pid|
-	    begin
-	      read.each do |line|
-		print line
-		data << line
-	      end
-	    rescue Errno::EIO
-	    end
-	  end
-	rescue PTY::ChildExited
-	end
+        begin
+          # PTY supports ANSI cursor control and colors
+          PTY.spawn(cmd) do |read, write, pid|
+            begin
+              read.each do |line|
+                print line
+                data << line
+              end
+            rescue Errno::EIO
+            end
+          end
+        rescue PTY::ChildExited
+        end
       else
-	# no support for ANSI cursor control and colors
-	Open3.popen2e(cmd) do |stdin, out, thread|
+        # no support for ANSI cursor control and colors
+        Open3.popen2e(cmd) do |stdin, out, thread|
           out.each do |line|
             print line
             data << line
@@ -43,8 +43,6 @@ module FlyIoRails
     end
 
     def create_app(name: nil, org: 'personal', regions: [], nomad: false, **rest)
-      return if File.exist? 'fly.toml'
-
       cmd = if name
         "flyctl apps create #{name.inspect} --org #{org.inspect} --machines"
       else
