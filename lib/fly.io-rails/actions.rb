@@ -350,6 +350,16 @@ module Fly
           @volume = create_volume(app, @region, @config.sqlite3.size) 
         end
       elsif @postgresql and not secrets.include? 'DATABASE_URL'
+        unless (IO.read('config/fly.rb').include?('postgres') rescue true)
+          source_paths.each do |path|
+            template = File.join(path, 'fly.rb.erb')
+            next unless File.exist? template
+            insert = IO.read(template)[/<% if @postgresql -%>\n(.*?)<% end/m, 1]
+            append_to_file 'config/fly.rb', insert if insert
+            break
+          end
+        end
+
         secret = create_postgres(app, @org, @region,
           @config.postgres.vm_size,
           @config.postgres.volume_size,
