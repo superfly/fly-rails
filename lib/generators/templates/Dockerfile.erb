@@ -239,18 +239,19 @@ RUN rm /etc/nginx/sites-enabled/default && \
 <% end -%>
 <% end -%>
 
+<% if @procs.length > 1 # and not @eject -%>
+# Define processes
+COPY <<"EOF" Procfile.fly
+<%= render 'Procfile.fly.erb' %>
+EOF
+
+<% end -%>
 # Deploy your application
 COPY . .
 <% if @bundle_add -%>
 COPY --from=gems /app/Gemfile* ./
 <% end -%>
 
-<% if @procs.length > 1 # and not @eject -%>
-COPY <<"EOF" Procfile.fly
-<%= render 'Procfile.fly.erb' %>
-EOF
-
-<% end -%>
 # Adjust binstubs to run on Linux and set current working directory
 RUN chmod +x /app/bin/* && \
     sed -i 's/ruby.exe/ruby/' /app/bin/* && \
