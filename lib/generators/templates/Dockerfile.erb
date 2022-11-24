@@ -132,9 +132,11 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
 RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
   && echo "deb http://apt.postgresql.org/pub/repos/apt/ $(sed -n 's/VERSION_CODENAME=\(.*\)$/\1/p' /etc/os-release)-pgdg main" 14 > /etc/apt/sources.list.d/pgdg.list
 <% end -%>
+# nginx: <%= @nginx.inspect %>
 <%
   @deploy_packages = []
-  @deploy_packages += %w(nginx passenger libnginx-mod-http-passenger) if @passenger
+  @deploy_packages << 'nginx' if @nginx
+  @deploy_packages += %w(passenger libnginx-mod-http-passenger) if @passenger
   @deploy_packages << 'postgresql-client-14' if @postgresql
   @deploy_packages << 'libsqlite3-0' if @sqlite3
   @deploy_packages << 'default-mysql-client' if @mysql
@@ -200,9 +202,11 @@ COPY --from=nats:latest /nats-server.conf /etc/nats/nats-server.conf
 # configure avahi for ipv6
 RUN sed -i 's/mdns4_minimal/mdns_minimal/' /etc/nsswitch.conf
 <% end -%>
+<% if @nginx -%>
 <% if @passenger -%>
 
 # configure nginx/passenger
+<% if @passenger -%>
 <% unless @avahi or @nats -%>
 COPY config/nginx.conf /etc/nginx/sites-available/rails.conf
 <% end -%>
@@ -224,6 +228,16 @@ RUN rm /etc/nginx/sites-enabled/default && \
 COPY config/hook_detached_process /etc/nginx/
 <% end -%>
 <% end -%>
+<% else -%>
+
+# configure nginx/passenger
+COPY <<-"EOF" /etc/nginx/sites-available/rails.conf
+<%= render 'nginx.conf.erb' %>
+EOF
+RUN rm /etc/nginx/sites-enabled/default && \
+    ln -s /etc/nginx/sites-available/rails.conf /etc/nginx/sites-enabled/
+<% end -%>
+<% end -%>
 
 # Deploy your application
 COPY . .
@@ -232,7 +246,7 @@ COPY --from=gems /app/Gemfile* ./
 <% end -%>
 
 <% if @procs.length > 1 # and not @eject -%>
-COPY <<EOF Procfile.fly
+COPY <<"EOF" Procfile.fly
 <%= render 'Procfile.fly.erb' %>
 EOF
 
