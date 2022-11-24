@@ -77,7 +77,10 @@ module Fly
 
       def initialize
         @config = {}
+        super
       end
+
+      option :image, nil
 
       block :machine, Machine
       block :postgres, Postgres

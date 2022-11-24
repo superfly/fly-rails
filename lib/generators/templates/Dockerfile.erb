@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1
 
-FROM quay.io/evl.ms/fullstaq-ruby:<%= @ruby_version %>-jemalloc-slim as base
+FROM <%= @image %> as base
 LABEL fly_launch_runtime="rails"
 
 ENV RAILS_ENV=production

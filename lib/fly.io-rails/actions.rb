@@ -58,6 +58,7 @@ module Fly
       @config = Fly::DSL::Config.new
       if File.exist? 'config/fly.rb'
         @config.instance_eval IO.read('config/fly.rb')
+        @image = @config.image
       end
 
       # set additional variables based on application source
@@ -123,7 +124,38 @@ module Fly
     end
 
     def generate_fly_config
+      select_image
       app_template 'fly.rb.erb', 'config/fly.rb'
+    end
+
+    def select_image
+      return @image if @image and @image.include? ":#{@ruby_version}-"
+
+      tags = []
+
+      debian_releases = %w(stretch buster bullseye bookworm) 
+              
+      Net::HTTP.start('quay.io', 443, use_ssl: true) do |http|
+        (1..).each do |page|
+          request = Net::HTTP::Get.new "/api/v1/repository/evl.ms/fullstaq-ruby/tag/?page=#{page}&limit=100"
+          response = http.request request
+          body = JSON.parse(response.body)
+          tags += body['tags'].map {|tag| tag['name']}.grep /jemalloc-\w+-slim/
+          break unless body['has_additional']
+        end
+      end 
+          
+      ruby_releases = tags.group_by {|tag| tag.split('-').first}.
+        map do |release, tags|
+          [release, tags.max_by {|tag| debian_releases.find_index(tag[/jemalloc-(\w+)-slim/, 1]) || -1}]
+        end.sort.to_h
+
+      unless ruby_releases[@ruby_version]
+        @ruby_version = ruby_releases.keys.find {|release| release >= @ruby_version} ||
+          ruby_releases.keys.last
+      end
+
+      @image = 'quay.io/evl.ms/fullstaq-ruby:' + ruby_releases[@ruby_version]
     end
 
     def generate_dockerfile
@@ -137,6 +169,7 @@ module Fly
       end
 
       if @eject or not File.exist? @dockerfile
+        select_image
         app_template 'Dockerfile.erb', @dockerfile
       end
     end
