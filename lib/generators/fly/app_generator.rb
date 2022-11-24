@@ -8,6 +8,7 @@ class AppGenerator < Rails::Generators::Base
   class_option :org, type: :string, default: 'personal'
   class_option :region, type: :array, repeatable: true, default: []
   class_option :nomad, type: :boolean, default: false
+  class_option :eject, type: :boolean, default: nil
 
   class_option :anycable, type: :boolean, default: false
   class_option :avahi, type: :boolean, default: false
@@ -22,42 +23,42 @@ class AppGenerator < Rails::Generators::Base
 
     # the plan is to make eject an option, default to false, but until
     # that is ready, have generate fly:app always eject
-    options = options.to_h.dup
-    options[:eject] = options[:nomad]
+    opts = options.to_h.symbolize_keys
+    opts[:eject] = opts[:nomad] if opts[:eject] == nil
 
     if File.exist? 'fly.toml'
       toml = TOML.load_file('fly.toml')
-      options[:name] ||= toml['app']
+      opts[:name] ||= toml['app']
       apps = JSON.parse(`flyctl list apps --json`) rescue []
 
       if toml.keys.length == 1
-        if options[:name] != toml['app']
+        if opts[:name] != toml['app']
           # replace existing fly.toml
           File.unlink 'fly.toml'
-          create_app(**options.symbolize_keys)
-        elsif not apps.any? {|item| item['ID'] == options[:name]}
-          create_app(**options.symbolize_keys)
+          create_app(**opts.symbolize_keys)
+        elsif not apps.any? {|item| item['ID'] == opts[:name]}
+          create_app(**opts.symbolize_keys)
         end
-      elsif options[:name] != toml['app']
+      elsif opts[:name] != toml['app']
         say_status "fly:app", "Using the name in the existing toml file", :red
-        options[:name] = toml['app']
+        opts[:name] = toml['app']
       end
     else
-      create_app(**options.symbolize_keys)
+      create_app(**opts.symbolize_keys)
     end
 
-    action = Fly::Actions.new(@app, options)
+    action = Fly::Actions.new(@app, opts)
 
     action.generate_toml
     action.generate_fly_config unless File.exist? 'config/fly.rb'
 
-    if options[:eject]
+    if opts[:eject]
       action.generate_dockerfile unless File.exist? 'Dockerfile'
       action.generate_dockerignore unless File.exist? '.dockerignore'
       action.generate_nginx_conf unless File.exist? 'config/nginx.conf'
       action.generate_raketask unless File.exist? 'lib/tasks/fly.rake'
       action.generate_procfile unless File.exist? 'Procfile.rake'
-      action.generate_litefs if options[:litefs] and not File.exist? 'config/litefs'
+      action.generate_litefs if opts[:litefs] and not File.exist? 'config/litefs'
       action.generate_patches
     end
 
