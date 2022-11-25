@@ -166,6 +166,7 @@ RUN sed -i 's/^daemonize yes/daemonize no/' /etc/redis/redis.conf &&\
 <% end -%>
 # copy installed gems
 COPY --from=gems /app /app
+COPY --from=gems /usr/lib/fullstaq-ruby/versions /usr/lib/fullstaq-ruby/versions
 COPY --from=gems /usr/local/bundle /usr/local/bundle
 
 <% if @node -%>
