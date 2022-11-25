@@ -235,7 +235,7 @@ module Fly
     end
 
     def generate_patches
-      if @redis_cable and not @anycable and @redis != :internal and
+      if false # @redis_cable and not @anycable and @redis != :internal and
         not File.exist? 'config/initializers/action_cable.rb'
 
         app

@@ -53,7 +53,7 @@ class AppGenerator < Rails::Generators::Base
     action.generate_fly_config unless File.exist? 'config/fly.rb'
 
     if opts[:eject]
-      action.generate_dockerfile unless File.exist? 'Dockerfile'
+      action.generate_dockerfile
       action.generate_dockerignore unless File.exist? '.dockerignore'
       action.generate_nginx_conf unless File.exist? 'config/nginx.conf'
       action.generate_raketask unless File.exist? 'lib/tasks/fly.rake'

@@ -10,6 +10,7 @@ ENV RAILS_LOG_TO_STDOUT true
 <% unless @passenger -%>
 ENV RAILS_SERVE_STATIC_FILES true
 <% end -%>
+ENV PORT 8080
 
 RUN mkdir /app
 WORKDIR /app
@@ -34,20 +35,17 @@ RUN gem update --system --no-document && \
 FROM base as build_deps
 
 <% 
-  @build_packages = %w(git build-essential wget vim curl gzip xz-utils)
+  @build_packages = %w(git build-essential wget curl gzip xz-utils)
   @build_packages << 'libpq-dev' if @postgresql
   @build_packages << 'libsqlite3-dev' if @sqlite3
   @build_packages << 'default-libmysqlclient-dev' if @mysql
   @build_packages += %w[pkg-config libmagickwand-dev] if @rmagick
 -%>
-ARG BUILD_PACKAGES=<%= @build_packages.join(' ').inspect %>
-ENV BUILD_PACKAGES ${BUILD_PACKAGES}
-
 RUN --mount=type=cache,id=dev-apt-cache,sharing=locked,target=/var/cache/apt \
     --mount=type=cache,id=dev-apt-lib,sharing=locked,target=/var/lib/apt \
     apt-get update -qq && \
-    apt-get install --no-install-recommends -y ${BUILD_PACKAGES} \
-    && rm -rf /var/lib/apt/lists /var/cache/apt/archives
+    apt-get install --no-install-recommends --yes \
+    <%= @build_packages.join(' ') %>
 
 #######################################################################
 
@@ -135,7 +133,7 @@ RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
   && echo "deb http://apt.postgresql.org/pub/repos/apt/ $(sed -n 's/VERSION_CODENAME=\(.*\)$/\1/p' /etc/os-release)-pgdg main" 14 > /etc/apt/sources.list.d/pgdg.list
 <% end -%>
 <%
-  @deploy_packages = %w(file vim curl gzip)
+  @deploy_packages = []
   @deploy_packages += %w(nginx passenger libnginx-mod-http-passenger) if @passenger
   @deploy_packages << 'postgresql-client-14' if @postgresql
   @deploy_packages << 'libsqlite3-0' if @sqlite3
@@ -150,14 +148,11 @@ RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
   @deploy_packages << 'gettext-base' if @nats
   @deploy_packages += %w(avahi-daemon avahi-utils libnss-mdns) if @avahi
 -%>
-ARG DEPLOY_PACKAGES=<%= @deploy_packages.join(' ').inspect %>
-ENV DEPLOY_PACKAGES=${DEPLOY_PACKAGES}
-
 RUN --mount=type=cache,id=prod-apt-cache,sharing=locked,target=/var/cache/apt \
     --mount=type=cache,id=prod-apt-lib,sharing=locked,target=/var/lib/apt \
     apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-    ${DEPLOY_PACKAGES}
+    apt-get install --no-install-recommends --yes \
+    <%= @deploy_packages.join(' ') %>
 
 <% if @redis == :internal -%>
 # configure redis
@@ -241,23 +236,14 @@ RUN chmod +x /app/bin/* && \
     sed -i 's/ruby.exe/ruby/' /app/bin/* && \
     sed -i '/^#!/aDir.chdir File.expand_path("..", __dir__)' /app/bin/*
 
-# The following enable assets to precompile on the build server.  Adjust
-# as necessary.  If no combination works for you, see:
-# https://fly.io/docs/rails/getting-started/existing/#access-to-environment-variables-at-build-time
-ENV SECRET_KEY_BASE 1
-# ENV AWS_ACCESS_KEY_ID=1
-# ENV AWS_SECRET_ACCESS_KEY=1
+# Run build task defined in config/fly.rb
+RUN SECRET_KEY_BASE=1 bin/rails fly:build
 
-# Run build task defined in lib/tasks/fly.rake
-ARG BUILD_COMMAND="bin/rails fly:build"
-RUN ${BUILD_COMMAND}
-
-# Default server start instructions.  Generally Overridden by fly.toml.
-ENV PORT 8080
-<% if @litefs -%>
-ARG SERVER_COMMAND="litefs"
-<% else -%>
-ARG SERVER_COMMAND="bin/rails fly:server"
-<% end -%>
-ENV SERVER_COMMAND ${SERVER_COMMAND}
-CMD ${SERVER_COMMAND}
+# Start server
+<% if @litefs
+    @server_command="litefs"
+  else
+    @server_command="bin/rails fly:server"
+  end
+-%>
+CMD <%= @server_command.split(' ').inspect %>
