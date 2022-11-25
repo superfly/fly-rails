@@ -307,23 +307,21 @@ module Fly
       if @anycable and not @gemfile.include? 'anycable-rails'
         cmd = 'bundle add anycable-rails'
         say_status :run, cmd
-        open('Gemfile', 'a') {|f| f.puts "\n gem \"anycable-rails\""}
-        system 'bundle install'
+        Bundler.with_original_env { system cmd }
         exit $?.exitstatus unless $?.success?
       end
 
       if @postgresql and not @gemfile.include? 'pg'
         cmd = 'bundle add pg'
         say_status :run, cmd
-        open('Gemfile', 'a') {|f| f.puts "\n gem \"pg\""}
-        system 'bundle install'
+        Bundler.with_original_env { system cmd }
         exit $?.exitstatus unless $?.success?
       end
 
       if @redis and not @gemfile.include? 'redis'
         cmd = 'bundle add redis'
         say_status :run, cmd
-        system cmd
+        Bundler.with_original_env { system cmd }
         exit $?.exitstatus unless $?.success?
       end
     end
