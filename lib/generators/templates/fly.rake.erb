@@ -45,14 +45,15 @@ namespace :fly do
     deps << 'db:migrate' if @sqlite3
     deps = deps.first if deps.length == 1
 
-    if @procs.length > 1
+    if @procs.length > 1 and (@avahi or @nats)
       "task :server, [:formation] => #{deps.inspect} do |task, args|"
     else
       "task :server => #{deps.inspect} do"
     end
   end %>
   <%- if @procs.length > 1 -%>
-    <%- if @passenger and (@avahi or @nats) -%>
+    <%- if @avahi or @nats -%>
+    <%- if @passenger -%>
     sh 'envsubst < config/nginx.conf > /etc/nginx/sites-available/rails.conf'
     <%- end -%>
     formation = args[:formation].gsub!(';', ',')
@@ -63,11 +64,14 @@ namespace :fly do
     Rake::Task['fly:nats_publish'].invoke(formation) if ENV['NATS_SERVER']
     <%- end -%>
     Bundler.with_original_env do
-      <%- if @avahi or @nats -%>
       Rake::Task['fly:env'].invoke
-      <%- end -%>
       sh "foreman start --procfile=Procfile.fly --formation=#{formation}"
     end
+    <%- else -%>
+    Bundler.with_original_env do
+      sh "foreman start --procfile=Procfile.fly"
+    end
+    <%- end -%>
   <%- else -%>
     sh <%= @procs.values.first.inspect %>
   <%- end -%>

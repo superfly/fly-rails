@@ -31,6 +31,9 @@ namespace :fly do
     action.generate_raketask unless File.exist? 'lib/tasks/fly.rake'
     action.generate_procfile unless File.exist? 'Procfile.fly'
 
+    # look for missing gems
+    action.bundle_gems
+
     # build and push an image
     out = FlyIoRails::Utils.tee "flyctl deploy --build-only --push --dockerfile #{action.dockerfile} --ignorefile #{action.ignorefile}"
     image = out[/image:\s+(.*)/, 1]&.strip

@@ -293,7 +293,15 @@ module Fly
       cmd = "flyctl redis create --org #{org} --name #{app}-redis --region #{region} --no-replicas #{eviction} --plan #{@config.redis.plan}"
       say_status :run, cmd
       output = FlyIoRails::Utils.tee(cmd)
-      output[%r{redis://\S+}]
+      output[%r{redis://[-\w:@.]+}]
+    end
+
+    def bundle_gems
+      if @anycable and not @gemfile.include? 'anycable-rails'
+        cmd = 'bundle add anycable-rails'
+        say_status :run, cmd
+        system cmd
+      end
     end
 
     def release(app, options)

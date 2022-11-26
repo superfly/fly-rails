@@ -31,7 +31,7 @@ module Fly
       end
 
       @sidekiq = @gemfile.include? 'sidekiq'
-      @anycable = @gemfile.include? 'anycable'
+      @anycable = @gemfile.include? 'anycable-rails'
       @rmagick = @gemfile.include? 'rmagick'
       @image_processing = @gemfile.include? 'image_processing'
       @bootstrap = @gemfile.include? 'bootstrap'
@@ -51,8 +51,11 @@ module Fly
 
       @cable = ! Dir['app/channels/*.rb'].empty?
 
-      if (YAML.load_file('config/cable.yml').dig('production', 'adapter') rescue false)
-        @redis_cable = @cable
+      if @cable
+        @redis_cable = true
+        if (YAML.load_file('config/cable.yml').dig('production', 'adapter') rescue '').include? 'any_cable'
+          @anycable = true
+        end
       end
 
       if (IO.read('config/environments/production.rb') =~ /redis/i rescue false)
