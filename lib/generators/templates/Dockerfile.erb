@@ -239,10 +239,17 @@ RUN rm /etc/nginx/sites-enabled/default && \
 <% end -%>
 <% end -%>
 
-<% if @procs.length > 1 # and not @eject -%>
+<% if @procs.length > 1 and not @eject -%>
 # Define processes
-COPY <<"EOF" Procfile.fly
+COPY <<-"EOF" ./Procfile.fly
 <%= render 'Procfile.fly.erb' %>
+EOF
+
+<% end -%>
+<% unless @eject -%>
+# Define tasks
+COPY <<-"EOF" ./lib/tasks/fly.rake
+<%= render 'fly.rake.erb' %>
 EOF
 
 <% end -%>

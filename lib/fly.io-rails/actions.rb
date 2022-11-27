@@ -214,7 +214,6 @@ module Fly
     end
 
     def generate_raketask
-      return unless @nomad
       app_template 'fly.rake.erb', 'lib/tasks/fly.rake'
     end
 
