@@ -1,3 +1,4 @@
+<% if @passenger -%>
 <% if @serverless -%>
 passenger_ctl hook_detached_process /etc/nginx/hook_detached_process;
 passenger_min_instances 0;
@@ -53,3 +54,24 @@ server {
     # to file uploads. The following line enables uploads of up to 50 MB:
     client_max_body_size 50M;
 }
+<% else -%>
+server {
+    listen 8080 default_server;
+    listen [::]:8080 default_server;
+
+<% if @anycable -%>
+    location /cable {
+        proxy_pass http://localhost:8082/cable;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+    }
+
+<% end -%>
+    location / {
+        proxy_pass http://localhost:8081/;
+        proxy_set_header origin 'https://localhost:8081';
+    }
+}
+<% end -%>

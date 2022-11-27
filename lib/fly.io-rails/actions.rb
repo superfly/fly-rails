@@ -107,6 +107,11 @@ module Fly
       self.app = TOML.load_file('fly.toml')['app']
     end
 
+    def render template
+      template = ERB.new(IO.read(File.expand_path(template, source_paths.last)), trim_mode: '-')
+      template.result(binding).chomp
+    end
+
     def app_template template_file, destination
       app
       template template_file, destination
@@ -301,6 +306,7 @@ module Fly
         cmd = 'bundle add anycable-rails'
         say_status :run, cmd
         system cmd
+        exit $?.exitstatus unless $?.success?
       end
     end
 

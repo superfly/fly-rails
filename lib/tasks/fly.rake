@@ -28,8 +28,6 @@ namespace :fly do
     action.generate_fly_config unless File.exist? 'config/fly.rb'
     action.generate_dockerfile
     action.generate_dockerignore
-    action.generate_raketask unless File.exist? 'lib/tasks/fly.rake'
-    action.generate_procfile unless File.exist? 'Procfile.fly'
 
     # look for missing gems
     action.bundle_gems

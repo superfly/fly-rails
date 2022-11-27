@@ -27,9 +27,5 @@ end
 <% end -%>
 
 <% unless @nomad -%>
-<%=
-  rakefile = File.expand_path('fly.rake.erb', __dir__)
-  template = ERB.new(IO.read(File.expand_path('fly.rake.erb', __dir__)), trim_mode: '-')
-  template.result(binding).chomp
-%>
+<%= render 'fly.rake.erb' %>
 <% end -%>
