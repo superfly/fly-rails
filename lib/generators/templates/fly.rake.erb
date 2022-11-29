@@ -51,6 +51,7 @@ namespace :fly do
       "task :server => #{deps.inspect} do"
     end
   end %>
+  rm_f 'tmp/pids/server.pid' if File.exist? 'tmp/pids/server.pid'
   <%- if @procs.length > 1 -%>
     <%- if @avahi or @nats -%>
     <%- if @passenger -%>

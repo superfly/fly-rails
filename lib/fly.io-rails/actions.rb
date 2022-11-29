@@ -341,8 +341,9 @@ module Fly
           sleep 0.2
         end
 
-        exit_code = event&.dig(:request, :exit_event, :exit_code)
+        exit_code = event&.dig(:request, :MonitorEvent, :exit_event, :exit_code)
         Fly::Machines.delete_machine app, machine if machine
+        exit_code ||= 0 if event&.dig(:request, :MonitorEvent, :exit_event, :signal) == -1
         return event, exit_code, machine
       else
         return status, nil, nil
@@ -402,6 +403,24 @@ module Fly
       end
     end
 
+    def release_task_defined?
+      if File.exist? 'lib/tasks/fly.rake'
+        Rake.load_rakefile 'lib/tasks/fly.rake'
+      else
+        Tempfile.create ['fly', '.rake'] do |file|
+          IO.write file.path, render('fly.rake.erb')
+          Rake.load_rakefile file.path
+        end
+      end
+
+      if Rake::Task.task_defined? 'fly:release'
+        task = Rake::Task['fly:release']
+        not (task.actions.empty? and task.prereqs.empty?)
+      else
+        false
+      end
+    end
+
     def deploy(app, image)
       launch(app)
 
@@ -425,16 +444,25 @@ module Fly
         ]
       }
 
+      # start proxy, if necessary
+      Fly::Machines::fly_api_hostname!
+
       # only run release step if there is a non-empty release task in fly.rake
-      if (IO.read('lib/tasks/fly.rake') rescue '') =~ /^\s*task[ \t]*+:?release"?[ \t]*\S/
+      if release_task_defined?
         # build config for release machine, overriding server command
         release_config = config.dup
         release_config.delete :services
         release_config.delete :mounts
-        release_config[:env] = { 'SERVER_COMMAND' => 'bin/rails fly:release' }
+        release_config[:processes] = [{
+          name: 'release',
+          entrypoint: [],
+          cmd: ['bin/rails', 'fly:release'],
+          env: {},
+          user: 'root'
+        }]
 
         # perform release
-        say_status :fly, release_config[:env]['SERVER_COMMAND']
+        say_status :fly, 'bin/rails fly:release'
         event, exit_code, machine = release(app, region: @region, config: release_config)
 
         if exit_code != 0
@@ -444,9 +472,6 @@ module Fly
           exit 1
         end
       end
-
-      # start proxy, if necessary
-      endpoint = Fly::Machines::fly_api_hostname!
 
       # stop previous instances - list will fail on first run
       stdout, stderr, status = Open3.capture3('fly machines list --json')
@@ -590,7 +615,7 @@ module Fly
       endpoint = Fly::Machines::fly_api_hostname!
 
       # perform release, if necessary
-      if (IO.read('lib/tasks/fly.rake') rescue '') =~ /^\s*task[ \t]*+:?release"?[ \t]*\S/
+      if release_task_defined?
         say_status :fly, config[:env]['SERVER_COMMAND']
         event, exit_code, machine = release(app, region: @region, config: config)
       else
