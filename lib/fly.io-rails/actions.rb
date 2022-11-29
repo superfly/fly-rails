@@ -308,6 +308,21 @@ module Fly
         cmd = 'bundle add anycable-rails'
         say_status :run, cmd
         system cmd
+        system 'bundle install' # not sure why grpc doesn't get added the first time.
+        exit $?.exitstatus unless $?.success?
+      end
+
+      if @postgresql and not @gemfile.include? 'pg'
+        cmd = 'bundle add pg'
+        say_status :run, cmd
+        system cmd
+        exit $?.exitstatus unless $?.success?
+      end
+
+      if @redis and not @gemfile.include? 'redis'
+        cmd = 'bundle add redis'
+        say_status :run, cmd
+        system cmd
         exit $?.exitstatus unless $?.success?
       end
     end
