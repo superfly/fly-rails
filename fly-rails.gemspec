@@ -1,13 +1,13 @@
-require_relative "lib/fly.io-rails/version"
+require_relative "lib/fly-rails/version"
 
 Gem::Specification.new do |spec|
-  spec.name        = "fly.io-rails"
-  spec.version     = Fly_io::VERSION
+  spec.name        = "fly-rails"
+  spec.version     = Fly::VERSION
   spec.authors     = [ 
     "Sam Ruby",
   ]
   spec.email       = "rubys@intertwingly.net"
-  spec.homepage    = "https://github.com/rubys/fly.io-rails"
+  spec.homepage    = "https://github.com/rubys/fly-rails"
   spec.summary     = "Rails support for Fly-io"
   spec.license     = "Apache-2.0"
 
@@ -18,7 +18,5 @@ Gem::Specification.new do |spec|
   spec.files = Dir["{app,lib}/**/*", "LICENSE", "Rakefile", "README.md"]
   spec.bindir = "exe"
 
-  spec.add_dependency "fly-ruby"
   spec.add_dependency "toml"
-  spec.add_dependency "nats-pure"
 end

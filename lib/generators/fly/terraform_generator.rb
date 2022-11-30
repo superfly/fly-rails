@@ -1,4 +1,4 @@
-require 'fly.io-rails/actions'
+require 'fly-rails/actions'
 
 module Fly::Generators
 class TerraformGenerator < Rails::Generators::Base

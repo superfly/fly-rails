@@ -1,6 +1,6 @@
 require 'rails'
-require 'fly.io-rails/generators'
-require 'fly.io-rails/utils'
+require 'fly-rails/generators'
+require 'fly-rails/utils'
 
 class FlyIoRailtie < Rails::Railtie
   # load rake tasks
@@ -12,7 +12,7 @@ class FlyIoRailtie < Rails::Railtie
 
   # set FLY_IMAGE_NAME on Nomad VMs
   if not ENV['FLY_IMAGE_REF'] and ENV['FLY_APP_NAME'] and ENV['FLY_API_TOKEN']
-    require 'fly.io-rails/machines'
+    require 'fly-rails/machines'
 
     ENV['FLY_IMAGE_REF'] = Fly::Machines.graphql(%{
       query {

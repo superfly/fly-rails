@@ -1,14 +1,14 @@
 $:.unshift File.expand_path('lib')
-require 'fly.io-rails/actions'
+require 'fly-rails/actions'
 
 require 'bundler'
 require 'pp'
 
 def check_git
-  return if Dir.exist? '/srv/fly.io-rails/lib'
+  return if Dir.exist? '/srv/fly-rails/lib'
 
   spec = Bundler::Definition.build('Gemfile', nil, []).dependencies.
-  find {|spec| spec.name == 'fly.io-rails'}
+  find {|spec| spec.name == 'fly-rails'}
 
   if spec.git
     if `which git`.empty? and File.exist? '/etc/debian_version'
@@ -16,10 +16,10 @@ def check_git
       system 'apt-get install -y git'
     end
 
-    system `git clone --depth 1 #{spec.git} /srv/fly.io-rails`
-    exit 1 unless Dir.exist? '/srv/fly.io-rails/lib'
-    ENV['RUBYLIB'] = '/srv/fly.io-rails/lib'
-    exec "ruby -r fly.io-rails/deploy -e #{caller_locations(1,1)[0].label}"
+    system `git clone --depth 1 #{spec.git} /srv/fly-rails`
+    exit 1 unless Dir.exist? '/srv/fly-rails/lib'
+    ENV['RUBYLIB'] = '/srv/fly-rails/lib'
+    exec "ruby -r fly-rails/deploy -e #{caller_locations(1,1)[0].label}"
   end
 end
 

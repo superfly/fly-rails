@@ -3,10 +3,10 @@ require 'thor'
 require 'toml'
 require 'active_support'
 require 'active_support/core_ext/string/inflections'
-require 'fly.io-rails/machines'
-require 'fly.io-rails/utils'
-require 'fly.io-rails/dsl'
-require 'fly.io-rails/scanner'
+require 'fly-rails/machines'
+require 'fly-rails/utils'
+require 'fly-rails/dsl'
+require 'fly-rails/scanner'
 
 module Fly
   class Actions < Thor::Group

@@ -1,6 +1,6 @@
-require 'fly.io-rails/machines'
-require 'fly.io-rails/hcl'
-require 'fly.io-rails/actions'
+require 'fly-rails/machines'
+require 'fly-rails/hcl'
+require 'fly-rails/actions'
 require 'toml'
 require 'json'
 
