@@ -60,14 +60,6 @@ RUN --mount=type=cache,id=dev-gem-cache,sharing=locked,target=/srv/vendor \
     bundle lock --add-platform x86_64-linux && \
     bundle config set path /srv/vendor && \
     bundle install && \
-<% if @redis and not @gemfile.include? 'redis' -%>
-<% @bundle_add = true -%>
-    bundle add redis && \
-<% end -%>
-<% if @postgresql and not @gemfile.include? 'pg' -%>
-<% @bundle_add = true -%>
-    bundle add pg && \
-<% end -%>
     mkdir -p vendor && \
     bundle config set path vendor && \
     cp -ar /srv/vendor .
