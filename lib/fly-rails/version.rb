@@ -1,3 +1,3 @@
-module Fly_io
+module Fly
   VERSION = '0.3.5'
 end

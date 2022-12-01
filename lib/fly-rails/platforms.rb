@@ -1,4 +1,4 @@
-module Fly_io
+module Fly
   PLATFORMS = {
     'Linux_arm64' => 'aarch64-linux',
     'Linux_x86_64' => 'x86-linux',
