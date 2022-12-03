@@ -166,6 +166,24 @@ module Fly
       @image = 'quay.io/evl.ms/fullstaq-ruby:' + ruby_releases[@ruby_version]
     end
 
+    # adjust bin files to work on Linux
+    def bin_fixups
+      shebangs = Dir['bin/*'].map {|file| IO.read(file).lines.first}.join
+      rubies = shebangs.scan(%r{#!/usr/bin/env (ruby.*)}).flatten.uniq - ['ruby']
+
+      binfixups = rubies.map do |ruby|
+        "sed -i 's/#{Regexp.quote(ruby)}$/ruby/' /app/bin/*"
+      end
+
+      unless Dir['bin/*'].all? {|file| File.executable? file}
+	binfixups.unshift 'chmod +x /app/bin/*'
+      end
+
+      binfixups.push %{sed -i '/^#!/aDir.chdir File.expand_path("..", __dir__)' /app/bin/*}
+
+      'RUN ' + binfixups.join(" && \\\n    ")
+    end
+
     def generate_dockerfile
       if @eject or File.exist? 'Dockerfile'
         @dockerfile = 'Dockerfile'
@@ -178,6 +196,9 @@ module Fly
 
       if @eject or not File.exist? @dockerfile
         select_image
+
+        @binfixups = bin_fixups
+
         app_template 'Dockerfile.erb', @dockerfile
       end
     end
