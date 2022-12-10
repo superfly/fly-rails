@@ -60,6 +60,7 @@ class AppGenerator < Rails::Generators::Base
       action.generate_procfile unless File.exist? 'Procfile.rake'
       action.generate_litefs if opts[:litefs] and not File.exist? 'config/litefs'
       action.generate_patches
+      action.generate_binstubs unless File.exist? 'bin/rails'
     end
 
     ips = `flyctl ips list`.strip.lines[1..].map(&:split).map(&:first)

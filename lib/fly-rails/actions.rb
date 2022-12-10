@@ -283,6 +283,12 @@ module Fly
       system cmd
     end
 
+    def generate_binstubs
+      cmd = 'bin/rails fly:update:bin'
+      say_status :run, cmd
+      system cmd
+    end
+
     def create_volume(app, region, size)
       name = "#{app.gsub('-', '_')}_volume"
       volumes = JSON.parse(`flyctl volumes list --json`)

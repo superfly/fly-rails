@@ -171,6 +171,16 @@ namespace :fly do
       pids.each {|pid| Process.kill 7, pid}
     end
   end
+
+  namespace :update do
+    task :bin do
+      if Rake::Task.task_defined? 'rails:update:bin'
+        Rake.application["rails:update:bin"].invoke
+      else
+        Rake.application["app:update:bin"].invoke
+      end
+    end
+  end
 end
 
 # Alias, for convenience
