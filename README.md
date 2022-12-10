@@ -33,10 +33,10 @@ For usage instructions, see the following guides:
 
   * Entrypoints: [lib/tasks/fly.rake](./lib/tasks/fly.rake), [lib/generators/app_generator.rb](./lib/generators/app_generator.rb), [lib/generators/terraform_generator.rb](.lib/generators/terraform_generator.rb) contain the deploy task, fly:app generator and
   fly:terraform generator respectively.
-  * [lib/fly.io-rails/actions.rb](./lib/fly.io-rails/actions.rb) contains Thor actions used by the
+  * [lib/fly-rails/actions.rb](./lib/fly-rails/actions.rb) contains Thor actions used by the
   rake task and generators.  Does some funky stuff to allow Thor actions to
   be called from Rake.
-  * [lib/fly.io-rails/machines.rb](./lib/fly.io-rails/machines.rb) wraps Fly.io's machine API as a Ruby module.
+  * [lib/fly-rails/machines.rb](./lib/fly-rails/machines.rb) wraps Fly.io's machine API as a Ruby module.
   * [lib/generators/templates](./lib/generators/templates) contains erb
   templates for all of the files produced primarily by the generator, but also
   by the deploy task.
@@ -76,15 +76,10 @@ rm -rf welcome
 rails new welcome
 cd welcome
 bundle config disable_local_branch_check true
-bundle config set --local local.fly.io-rails /Users/rubys/git/fly.io-rails
-bundle add fly.io-rails --git https://github.com/rubys/fly.io-rails.git
+bundle config set --local local.fly-rails /Users/rubys/git/fly-rails
+bundle add fly-rails --git https://github.com/rubys/fly-rails.git
 cp ../routes.rb config
-# bin/rails generate terraform
-# fly secrets set FLY_API_TOKEN=$(fly auth token)
-# bin/rails generate controller job start complete status
-# bin/rails generate job machine
-# cp ../job_controller.rb app/controllers/
-# cp ../machine_job.rb app/jobs/
+# bin/rails generate fly:app --eject
 ```
 
 Once created, I rerun using:
