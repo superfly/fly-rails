@@ -284,7 +284,7 @@ module Fly
     end
 
     def generate_binstubs
-      cmd = 'bin/rails fly:update:bin'
+      cmd = 'rake fly:update:bin'
       say_status :run, cmd
       system cmd
     end
