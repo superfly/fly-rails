@@ -64,7 +64,9 @@ module Fly
 
       @redis = @redis_cable || @redis_cache || @sidekiq
 
-      @assets = Dir.exists? 'app/assets'
+      ### api-only ###
+
+      @api = Rails.application.config.api_only
     end
   end
 end
