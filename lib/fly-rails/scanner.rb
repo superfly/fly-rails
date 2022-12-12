@@ -63,6 +63,8 @@ module Fly
       end
 
       @redis = @redis_cable || @redis_cache || @sidekiq
+
+      @assets = Dir.exists? 'app/assets'
     end
   end
 end
