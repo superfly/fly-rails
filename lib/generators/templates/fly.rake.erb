@@ -4,11 +4,13 @@ namespace :fly do
   #  - changes to the filesystem made here DO get deployed
   #  - NO access to secrets, volumes, databases
   #  - Failures here prevent deployment
-<% if @assets -%>
-  task :build => 'assets:precompile'
-<% else -%>
+
+<% if @api -%>
   task :build
+<% else -%>
+  task :build => 'assets:precompile'
 <% end -%>
+
 
 <% unless @litefs -%>
   # RELEASE step:
