@@ -514,17 +514,14 @@ module Fly
         end
       end
 
-      # stop previous instances - list will fail on first run
-      stdout, stderr, status = Open3.capture3('fly machines list --json')
+      # stop previous instances
       existing_machines = []
-      unless stdout.empty?
-        JSON.parse(stdout).each do |list|
-          existing_machines << list['name']
-          next if list['id'] == machine or list['state'] == 'destroyed'
-          cmd = "fly machines remove --force #{list['id']}"
-          say_status :run, cmd
-          system cmd
-        end
+      Fly::Machines::list_machines(app).each do |info|
+        existing_machines << info[:name]
+        next if info[:id] == machine or info[:state] == 'destroyed'
+        cmd = "fly machines remove --force #{info[:id]}"
+        say_status :run, cmd
+        system cmd
       end
 
       # configure sqlite3 (can be overridden by fly.toml)

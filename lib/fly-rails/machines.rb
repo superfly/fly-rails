@@ -132,7 +132,7 @@ module Fly
     end
 
     # list_machines machine 'user-functions'
-    def self.list_machines app, machine
+    def self.list_machines app
       get "/v1/apps/#{app}/machines"
     end
 
