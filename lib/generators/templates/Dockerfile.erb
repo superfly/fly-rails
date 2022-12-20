@@ -255,6 +255,11 @@ COPY --from=gems /app/Gemfile* ./
 # Adjust binstubs to run on Linux and set current working directory
 <%= @binfixups %>
 
+<% if @bootsnap -%>
+# Precompile bootsnap code for faster boot times
+RUN bundle exec bootsnap precompile --gemfile app/ lib/
+
+<% end -%>
 # Run build task defined in config/fly.rb
 RUN SECRET_KEY_BASE=1 bin/rails fly:build
 

@@ -36,6 +36,7 @@ module Fly
       @image_processing = @gemfile.include? 'image_processing'
       @bootstrap = @gemfile.include? 'bootstrap'
       @puppeteer = @gemfile.include? 'puppeteer'
+      @bootsnap = @gemfile.include? 'bootsnap'
 
       ### node modules ###
 
