@@ -20,7 +20,7 @@ namespace :fly do
   <%- if @sqlite3 -%>
   task :release
   <%- else -%>
-  task :release => 'db:migrate'
+  task :release => <%= @dbprep.inspect %>
   <%- end -%>
 
 <% end -%>
@@ -48,7 +48,7 @@ namespace :fly do
   #    to last successful deploy (if any).
   <%= begin
     deps = [:swapfile]
-    deps << 'db:migrate' if @sqlite3
+    deps << @dbprep if @sqlite3
     deps = deps.first if deps.length == 1
 
     if @procs.length > 1 and (@avahi or @nats)
@@ -90,7 +90,7 @@ namespace :fly do
   #    point where swap is rarely used.  'fly scale help' for details.
   #  - disable by removing dependency on the :server task, thus:
   <%- if @sqlite3 -%>
-  #        task :server => 'db:migrate' do
+  #        task :server => '<%= @dbprep.inspect %>' do
   <%- else -%>
   #        task :server do
   <%- end -%>

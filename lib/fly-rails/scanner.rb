@@ -67,6 +67,10 @@ module Fly
       ### api-only ###
 
       @api = Rails.application.config.api_only
+
+      ### db:prepare ###
+
+      @dbprep = (Rails::VERSION::MAJOR >= 6) ? 'db:prepare' : 'db:migrate'
     end
   end
 end
